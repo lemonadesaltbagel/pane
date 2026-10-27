@@ -4,7 +4,7 @@
 import AppKit
 import ApplicationServices
 
-/// What pane is allowed to do (research/plan-settings-onboarding.md, E1): Accessibility (required: every window and
+/// What pane is allowed to do: Accessibility (required: every window and
 /// keyboard behaviour) and window previews (optional: the PanePreview helper's Screen Recording). Changes are noticed
 /// without a relaunch: macOS's Accessibility change notification, and a check every second as a fallback
 /// (`AXIsProcessTrusted` can lag a toggle).

@@ -145,7 +145,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
     var switcher: SwitcherController!
     var commandSwitcher: SwitcherController?
     var switcherPanel: SwitcherPanel!
-    /// Pro's features (none in the Free build), and what they may use (research/plan-open-core.md O3).
+    /// Pro's features (none in the Free build), and what they may use.
     let extensions: [PaneExtension]
     private(set) var host: PaneHost?
 
@@ -295,7 +295,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         log("extensions: \(extensions.map(\.name).joined(separator: ", "))")
     }
 
-    // MARK: Edition (research/plan-editions.md)
+    // MARK: Edition
 
     /// pane Pro (a license or the trial): only pane Pro's licensing says so, with the settings it locks otherwise.
     /// The Free build has no editions: nothing is locked.
@@ -641,7 +641,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
 
     // MARK: Start
 
-    /// The Start menu (research/plan-start-menu.md): made at start-up so the first open is instant.
+    /// The Start menu: made at start-up so the first open is instant.
     var startMenu: StartMenuController?
     var startStore: StartStore?
 

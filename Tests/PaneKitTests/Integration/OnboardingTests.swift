@@ -7,7 +7,7 @@ import PaneKit
 import PaneTestKit
 
 extension IntegrationTests {
-    /// Phase 3: first-run onboarding (research/plan-settings-onboarding.md O1–O7), over Accessibility, in a test agent
+    /// Phase 3: first-run onboarding, over Accessibility, in a test agent
     /// with a copy of your config. Test agents show it only with PANE_ONBOARDING=1.
     @Suite("Onboarding")
     struct OnboardingTests {

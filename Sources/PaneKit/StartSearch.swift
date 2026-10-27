@@ -3,7 +3,7 @@
 
 import AppKit
 
-/// What Start's search finds (research/plan-start-menu.md E4, D3: local only).
+/// What Start's search finds (local only).
 public struct StartResult: Equatable, Identifiable, Sendable {
     public enum Kind: String, Sendable { case app, systemSetting, paneSetting, file, folder }
     public let kind: Kind
@@ -238,6 +238,8 @@ public enum RecentFiles {
         if calendar.isDate(date, inSameDayAs: now) { return "\(Int(seconds / 3600))h ago" }
         let time = DateFormatter()
         time.locale = locale
+        time.calendar = calendar
+        time.timeZone = calendar.timeZone // the calendar's day, not the Mac's (they differ in tests and for a set zone)
         time.timeStyle = .short
         time.dateStyle = .none
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
@@ -245,6 +247,8 @@ public enum RecentFiles {
         }
         let day = DateFormatter()
         day.locale = locale
+        day.calendar = calendar
+        day.timeZone = calendar.timeZone
         day.setLocalizedDateFormatFromTemplate(calendar.component(.year, from: date) == calendar.component(.year, from: now) ? "MMMd" : "yMMMd")
         return day.string(from: date)
     }

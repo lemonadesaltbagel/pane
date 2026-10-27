@@ -5,7 +5,7 @@ import AppKit
 import Collaboration
 import IOKit.pwr_mgt
 
-/// Start's power menu and account (research/plan-start-menu.md E5, D4: act at once, like Windows).
+/// Start's power menu and account (act at once, like Windows).
 public enum PowerAction: String, CaseIterable, Sendable {
     case lock, sleep, restart, shutDown, logOut, switchUser
 

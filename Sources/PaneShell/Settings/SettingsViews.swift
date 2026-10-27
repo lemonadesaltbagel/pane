@@ -5,7 +5,7 @@ import AppKit
 import SwiftUI
 import PaneKit
 
-// The settings window's pages (research/ui-settings-onboarding.md §2). Each control's accessibility identifier is its
+// The settings window's pages. Each control's accessibility identifier is its
 // setting id; fixed ids for the rest (§6): settings.sidebar.<page>, settings.search, settings.advancedToggle,
 // settings.restartBar / restartButton, settings.apps.*, keys.<action>.recorder / .conflict.
 

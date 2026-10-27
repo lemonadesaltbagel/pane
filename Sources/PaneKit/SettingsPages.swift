@@ -3,7 +3,7 @@
 
 import Foundation
 
-/// The settings window's pages (research/ui-settings-onboarding.md §2: Windows 11 names), as data: which settings sit
+/// The settings window's pages (Windows 11 names), as data: which settings sit
 /// on which page, in which group. A test checks that every setting a user can change is on exactly one page.
 public struct SettingsPage: Identifiable, Sendable {
     public init(id: String, title: String, symbol: String, category: String?, groups: [Group]) {

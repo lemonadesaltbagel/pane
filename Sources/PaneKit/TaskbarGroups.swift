@@ -4,7 +4,7 @@
 import AppKit
 import ApplicationServices
 
-// Windows "Combine taskbar buttons" for pane (research/taskbar-grouping.md §3): app groups, the three combine
+// Windows "Combine taskbar buttons" for pane (docs/research/taskbar-grouping.md §3): app groups, the three combine
 // modes with the "when taskbar is full" solver, group cycling, the group flyout model and group actions.
 // Everything here is UI-free; the bar renders `TaskbarPresentation` and the flyout renders `GroupFlyout`.
 

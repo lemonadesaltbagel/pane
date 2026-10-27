@@ -8,7 +8,7 @@ import PaneKit
 import PaneTestKit
 
 extension IntegrationTests {
-    /// The Start menu (research/plan-start-menu.md U1–U8), driven over Accessibility in a test agent. Its Start file
+    /// The Start menu, driven over Accessibility in a test agent. Its Start file
     /// is a test copy, the fixture app is indexed (PANE_START_APP_ROOTS) so launching never opens one of your apps,
     /// and power actions go to a fake (PANE_FAKE_POWER; a test agent refuses real ones anyway).
     @Suite("Start menu")

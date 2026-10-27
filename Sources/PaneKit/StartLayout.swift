@@ -3,7 +3,7 @@
 
 import Foundation
 
-/// The Start menu's own state (research/plan-start-menu.md E2): the pinned layout with folders, and what the app
+/// The Start menu's own state: the pinned layout with folders, and what the app
 /// index learns over time — launch counts, when each app was first seen, recent items you removed. Saved in
 /// `~/Library/Application Support/Pane/start.json` (like tray.json); PANE_START_FILE points tests elsewhere.
 public enum PinnedItem: Codable, Equatable, Sendable {

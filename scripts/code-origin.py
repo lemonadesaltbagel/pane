@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 lemonadesaltbagel
-"""Code-origin audit (research/plan-open-core.md, goal O1).
+"""Code-origin audit.
 
 Compares pane's code (Sources, Tests, scripts) with the third-party projects in refs/ (studied for research; never
 committed) and reports every passage that looks copied, with the project's licence.
 
-  python3 scripts/code-origin.py [--k 50] [--min 80] [--out research/code-origin.md]
+  python3 scripts/code-origin.py [--k 50] [--min 80] [--out test-results/code-origin.md]
 
 How: comments are stripped and code is tokenized; names become a placeholder (so renamed variables still match), as
 do strings and numbers. Every run of K tokens is fingerprinted (winnowed for the reference projects). A fingerprint
@@ -102,7 +102,7 @@ def main():
     ap.add_argument("--k", type=int, default=50)
     ap.add_argument("--w", type=int, default=6)
     ap.add_argument("--min", type=int, default=80, help="smallest passage reported, in tokens")
-    ap.add_argument("--out", default=os.path.join(ROOT, "research/code-origin.md"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "test-results/code-origin.md"))
     ap.add_argument("--ours", action="append", help="folders of our code to check (default: Sources, Tests, scripts)")
     args = ap.parse_args()
     refs = os.path.join(ROOT, "refs")

@@ -7,7 +7,7 @@ import PaneKit
 import PaneTestKit
 
 extension IntegrationTests {
-    /// T1 (research/plan-taskbar-and-windows-mode.md): badges, progress and attention on the taskbar, read from the Dock.
+    /// T1: badges, progress and attention on the taskbar, read from the Dock.
     @Suite("Taskbar · badges and attention")
     struct TaskbarSignalsTests {
         /// The taskbar button's accessibility value ("badge 7; needs attention").

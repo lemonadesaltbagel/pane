@@ -1,7 +1,7 @@
 #!/bin/zsh
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 lemonadesaltbagel
-# O5 (research/plan-open-core.md): the Free build (`pane`) contains none of pane Pro.
+# O5: the Free build (`pane`) contains none of pane Pro.
 #
 #   scripts/check-free-build.sh [--release]
 #
@@ -34,7 +34,7 @@ if [[ -d $pro ]]; then
   done
   if (( ${#found} )); then echo "✘ Pro types in $binary: $found"; failures=$((failures + 1)); else echo "✔ none of Pro's ${#types} types"; fi
 
-  # Setting ids ("tray.hideMenuBarIcons"…), shortcut ids (keys.taskView…), and the license format.
+  # Pro's setting ids, its shortcut ids (keys.…), and the license format.
   ids=(${(f)"$(grep -hoE 'Setting(<[^>]*>)?\("[a-zA-Z]+\.[a-zA-Z]+"' $pro/*.swift | grep -oE '"[^"]+"' | tr -d '"' | sort -u)"})
   ids+=(${(f)"$(grep -hoE 'Shortcut\("[a-zA-Z]+"' $pro/*.swift | grep -oE '"[^"]+"' | tr -d '"' | sed 's/^/keys./' | sort -u)"})
   ids+=("PANE-" "license.json")

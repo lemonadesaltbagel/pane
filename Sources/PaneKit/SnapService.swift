@@ -104,14 +104,15 @@ public final class SnapService {
 
     // MARK: Settings (live)
 
-    /// Apps whose windows pane doesn't snap (`windows.snap` per app, `apps.ignored`): drag snapping, Win+arrow snaps,
+    /// Apps whose windows pane doesn't snap (`windows.snap` per app, and apps an extension leaves alone): drag snapping, Win+arrow snaps,
     /// Snap Layouts and Snap Assist leave them alone. The green button and double-click still maximize.
     public var isExcluded: ((pid_t) -> Bool)?
-    public var layoutsOnHover = true      // windows.snapLayouts
-    public var assistEnabled = true       // windows.snapAssist
-    public var gap: CGFloat = 0           // windows.gaps
-    public var topDragLayouts = true      // windows.snapLayoutsOnTopDrag
-    public var shakeEnabled = false       // windows.shake
+    // The gestures an extension answers (it sets these from its settings; the agent leaves them off otherwise).
+    public var layoutsOnHover = true      // hover on the green button → onLayoutsRequested
+    public var assistEnabled = true       // a snap into a zone → onAssist
+    public var gap: CGFloat = 0           // points between snapped windows
+    public var topDragLayouts = true      // a drag to the top centre → onTopDrag
+    public var shakeEnabled = false       // a title-bar shake → onShake
     /// Dragging near the top centre (main queue): show the Snap Layouts there; nil = the pointer left (hide them).
     public var onTopDrag: ((CGPoint?) -> Void)?
     /// Title-bar shake (main queue): minimize the other windows, or bring them back.

@@ -5,7 +5,7 @@ import AppKit
 import SwiftUI
 import PaneKit
 
-/// The Start menu's state (research/plan-start-menu.md Phase 2), shared by its SwiftUI views.
+/// The Start menu's state, shared by its SwiftUI views.
 @MainActor
 public final class StartMenuModel: ObservableObject {
     public let index: AppIndex
@@ -27,7 +27,7 @@ public final class StartMenuModel: ObservableObject {
     @Published public private(set) var revision = 0
 
     public var onClose: (() -> Void)?
-    /// Extensions (pane Pro): making folders, recent files, more All views (research/plan-open-core.md O4).
+    /// Extensions (pane Pro): making folders, recent files, more All views.
     public var canMakeFolders: () -> Bool = { false }
     public var recentFiles: () -> [RecentFiles.Item] = { [] }
     /// Called as Start opens (an extension refreshes what it shows).

@@ -8,7 +8,7 @@ import PaneKit
 import PaneTestKit
 
 extension IntegrationTests {
-    /// The settings that were stored but not built (research/plan-reserved-settings.md), honoured by the real agent.
+    /// The settings that were stored but not built, honoured by the real agent.
     @Suite("Settings · honoured", .serialized)
     struct ReservedSettingsTests: LiveSettingsHarness {
 

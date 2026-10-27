@@ -5,7 +5,7 @@ import AppKit
 import PaneKit
 import PaneShell
 
-/// A part of pane built outside the engine: pane Pro's features (research/plan-open-core.md O3). The official build
+/// A part of pane built outside the engine: pane Pro's features. The official build
 /// passes its extensions to `PaneMain.run(extensions:)`; the Free build passes none, and works without them.
 ///
 /// The agent calls these at fixed points, on the main thread. Every hook has a default that does nothing, so an
@@ -109,7 +109,7 @@ public final class PaneHost {
     public internal(set) var switcherPanel: SwitcherPanel?
     /// Start, once it exists.
     public internal(set) var startMenu: StartMenuController?
-    /// Pro (a license or its trial) is on: the features follow it (research/plan-editions.md). The Free build is
+    /// Pro (a license or its trial) is on: the features follow it. The Free build is
     /// never Pro.
     public internal(set) var isPro: () -> Bool = { false }
     /// pane Pro's licensing: the edition is now `isPro` (`summary` for the log: "Pro trial: 3 days left"), with the

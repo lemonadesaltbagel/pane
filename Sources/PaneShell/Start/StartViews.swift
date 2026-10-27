@@ -6,7 +6,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import PaneKit
 
-// Start's views (research/plan-start-menu.md U1–U7). Identifiers: start.search, start.pinned, start.pinned.<id>,
+// Start's views. Identifiers: start.search, start.pinned, start.pinned.<id>,
 // start.folder.<n>, start.showAllPins, start.recent, start.recent.<n>, start.all, start.all.view, start.all.<id>,
 // start.all.index.<letter>, start.results, start.result.<n>, start.preview, start.account, start.place.<name>,
 // start.power, start.power.<action>.

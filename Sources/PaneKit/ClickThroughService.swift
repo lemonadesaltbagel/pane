@@ -14,7 +14,7 @@ import ApplicationServices
 ///
 /// Left alone: pane's own windows, excluded apps, title bars (dragging inactive windows already works), ⌘-clicks
 /// (macOS's "click in a background window without activating it"), double-clicks, clicks on the frontmost app's
-/// key window, and any click while pane is replaying. Design matches research/click-through.md.
+/// key window, and any click while pane is replaying. Design matches docs/research/click-through.md.
 public final class ClickThroughService {
     /// Marks pane's replayed events so its own tap lets them through.
     static let replayTag: Int64 = 0x5041_4E45 // "PANE"

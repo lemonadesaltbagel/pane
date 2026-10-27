@@ -46,7 +46,7 @@ public final class SwitcherPanel {
         panel.contentView = GlassSurface(role: .switcher, cornerRadius: 16, content: content)
     }
 
-    /// Setting `switcher.previews`: off shows the app icon in every tile and fetches no thumbnails.
+    /// Off (the default without a thumbnail provider) shows the app icon in every tile and fetches no thumbnails.
     public var showsPreviews = true
     public var isShown: Bool { panel.isVisible }
     /// Tiles whose thumbnail has arrived (tests).

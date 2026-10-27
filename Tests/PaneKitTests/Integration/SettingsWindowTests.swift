@@ -8,7 +8,7 @@ import PaneKit
 import PaneTestKit
 
 extension IntegrationTests {
-    /// Phase 2: the settings window (research/plan-settings-onboarding.md S1–S8), driven over Accessibility in a test
+    /// Phase 2: the settings window, driven over Accessibility in a test
     /// agent with a copy of your config (your config.json never changes).
     @Suite("Settings window")
     struct SettingsWindowTests: SettingsUIHarness {

@@ -4,7 +4,7 @@
 import AppKit
 import CoreServices
 
-/// The Start menu's app index (research/plan-start-menu.md E1): every installed app with its category, kept current
+/// The Start menu's app index: every installed app with its category, kept current
 /// by watching the app folders (FSEvents), with launch counts and first-seen dates from `StartStore`.
 @MainActor
 public final class AppIndex {

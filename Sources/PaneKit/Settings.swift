@@ -444,7 +444,7 @@ public enum ShortcutConflicts {
 
 // MARK: - The catalog
 
-/// Every setting pane has, in display order per section (research/settings-and-keys.md §3b: Windows-named panes). A
+/// Every setting pane has, in display order per section (docs/research/settings-and-keys.md §3b: Windows-named panes). A
 /// settings window renders `PaneSettings.settings(in:)`; `.planned` ones are reserved for features not built yet.
 public enum PaneSettings {
     // General
@@ -458,7 +458,7 @@ public enum PaneSettings {
     public static let checkForUpdates = Setting("general.checkForUpdates", true, .general, "Check for updates automatically", status: .planned)
     public static let quitOnLastWindow = Setting("lifecycle.quitOnLastWindow", true, .general, "Quit apps when their last window closes",
         help: "Windows behaviour. Turn it off for an app to keep it running with no windows.", perApp: true, legacy: "quitOnLastWindow")
-    // Start (research/plan-start-menu.md E6; Windows: Personalization ▸ Start)
+    // Start (Windows: Personalization ▸ Start)
     public static let startMenu = Setting("start.menu", "pane", .start, "Start opens",
         help: "pane's Start is Windows 11's; macOS Apps is the system's app grid.",
         kind: .choice([.init("pane", "pane's Start"), .init("apps", "macOS Apps")]), status: .live)
@@ -684,7 +684,7 @@ public final class SettingsStore {
         return bundles.filter { test(value(s, for: $0)) }
     }
 
-    // Locks (pane Pro's editions, research/plan-editions.md): a locked setting reads as a fixed value; your stored
+    // Locks (pane Pro's editions): a locked setting reads as a fixed value; your stored
     // choice stays. The Free build never locks anything.
 
     /// Locked settings → the value they read as.

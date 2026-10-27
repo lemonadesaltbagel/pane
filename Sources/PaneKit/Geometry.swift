@@ -32,7 +32,7 @@ public enum Geometry {
         return cocoaToAX(screen.visibleFrame, primaryHeight: primaryHeight)
     }
 
-    /// Gaps between snapped windows (setting `windows.gaps`): every edge moves in by half the gap, and edges on the
+    /// Gaps between snapped windows (`SnapService.gap`): every edge moves in by half the gap, and edges on the
     /// work area's border by a whole gap, so neighbours end up `gap` apart and `gap` from the screen's edges.
     public static func gapped(_ rect: CGRect, in work: CGRect, gap: CGFloat) -> CGRect {
         guard gap > 0 else { return rect }

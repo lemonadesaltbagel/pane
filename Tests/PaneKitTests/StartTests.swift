@@ -6,7 +6,7 @@ import Testing
 import PaneKit
 import PaneTestKit
 
-// The Start menu's engine (research/plan-start-menu.md Phase 1): pure logic on temporary files and folders.
+// The Start menu's engine: pure logic on temporary files and folders.
 
 @MainActor
 private func tempFolder() -> URL {

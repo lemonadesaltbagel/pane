@@ -4,7 +4,7 @@
 import AppKit
 import PaneKit
 
-/// The background of pane's surfaces (research/ui-design.md §4.1): Liquid Glass on macOS 26, a behind-window blur on
+/// The background of pane's surfaces: Liquid Glass on macOS 26, a behind-window blur on
 /// 14–25, an opaque fill under Reduce Transparency / Increase Contrast. The content goes *inside* the glass
 /// (`contentView`), never beside it, so AppKit keeps text and icons legible on it.
 ///

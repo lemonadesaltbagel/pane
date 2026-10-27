@@ -11,7 +11,7 @@ public protocol AgentHarness {}
 public protocol SettingsUIHarness {}
 
 public enum Harness: AgentHarness {
-    /// The agent the runner tests: `pane` in pane-tests, `pane-dev` (pane Pro) in pane-pro-tests. Set by each main.
+    /// The agent the runner tests: `pane` in pane-tests; an extension's own runner sets its build. Set by each main.
     nonisolated(unsafe) public static var agentBinaryName = "pane"
 }
 
