@@ -75,6 +75,9 @@ scripts/check-free-build.sh   # the build contains nothing but the engine
 
 Measured behavior (not just pass/fail) is written to `test-results/findings.md` on every run.
 
+**CI** (`.github/workflows/ci.yml`, on every push to main and every pull request): the build, `check-free-build.sh`
+and `--unit` on a macOS 26 runner. The integration tests need Accessibility and a screen, so they only run on a Mac.
+
 **Test isolation:**
 - **Config:** test agents run on a copy of your config (`PANE_CONFIG` → `$TMPDIR/pane-test-config.json`).
 - **Defaults and status items:** test agents use their own defaults (`PANE_DEFAULTS_SUITE`) and `PaneTest…`

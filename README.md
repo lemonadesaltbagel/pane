@@ -1,5 +1,7 @@
 # pane
 
+[![CI](https://github.com/lemonadesaltbagel/pane/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonadesaltbagel/pane/actions/workflows/ci.yml)
+
 Windows-style window management for macOS: a taskbar in place of the Dock, a Start menu, Windows snapping,
 Alt+Tab between windows, and apps that quit when their last window closes.
 
@@ -24,7 +26,8 @@ The official build, pane Pro, adds features through those extension points. Its 
 
 ## Build and run
 
-You need macOS 14 or later (developed on macOS 26) and Swift 6. The Command Line Tools are enough; Xcode isn't needed.
+pane runs on macOS 14 or later (developed on macOS 26). Building it needs Swift 6 and the macOS 26 SDK: the Command
+Line Tools for macOS 26 are enough, or Xcode 26.
 
 ```sh
 swift build
