@@ -167,6 +167,14 @@ keeps the signature and the grants tied to it.
   `PaneExtension.diagnostics()`. Launched through LaunchServices (`open -W -a … --args --report …`) it answers for the
   app; run from Terminal it answers for Terminal.
 - **Tests:** `AppUnderTest` (PaneTestKit) launches a built app through LaunchServices with the test isolation.
+- **What macOS protects** (`FileAccess`, for an optional feature): `level` (`.full` Full Disk Access, `.folders`
+  Desktop/Documents/Downloads, `.none`), `requestFolders` (macOS's three prompts), `openFullDiskAccessSettings`.
+  Nothing prompts until asked; tests fake it (`PANE_FAKE_PERMISSIONS_FILE`: `fullDiskAccess=granted`,
+  `folders=granted|deny`).
+  - `FileAccessControls` is the control for both places, the welcome's recent-files step
+    (`OnboardingModel.filesText` adds it) and Settings.
+  - `StartMenuModel.recentHint` shows under Recent what's missing.
+  - A denied permission turns off only its feature; only Accessibility is required.
 
 ## Multiple displays
 

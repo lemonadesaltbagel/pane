@@ -10,13 +10,14 @@ import PaneKit
 @MainActor
 public final class OnboardingModel: ObservableObject {
     public enum Step: String, CaseIterable, Sendable {
-        case welcome, accessibility, previews, keyboard, conflicts, changes, login
+        case welcome, accessibility, previews, files, keyboard, conflicts, changes, login
 
         var title: String {
             switch self {
             case .welcome: return "Welcome"
             case .accessibility: return "Accessibility"
             case .previews: return "Window previews"
+            case .files: return "Recent files"
             case .keyboard: return "Keyboard"
             case .conflicts: return "Other apps"
             case .changes: return "What pane changes"
@@ -28,6 +29,7 @@ public final class OnboardingModel: ObservableObject {
             case .welcome: return "hand.wave"
             case .accessibility: return "accessibility"
             case .previews: return "rectangle.on.rectangle"
+            case .files: return "doc.text.magnifyingglass"
             case .keyboard: return "keyboard"
             case .conflicts: return "app.badge"
             case .changes: return "slider.horizontal.3"
@@ -64,7 +66,12 @@ public final class OnboardingModel: ObservableObject {
         ("Alt+Tab between windows", "square.grid.2x2"),
     ]
     /// The steps shown.
-    public var steps: [Step] { Step.allCases.filter { ($0 != .keyboard || keyboardStep != nil) && ($0 != .previews || previewsText != nil) } }
+    public var steps: [Step] {
+        Step.allCases.filter { ($0 != .keyboard || keyboardStep != nil) && ($0 != .previews || previewsText != nil) && ($0 != .files || filesText != nil) }
+    }
+    /// What the recent-files step says (an extension whose features read files macOS protects); without it the step
+    /// is left out. It can always be skipped: a denied permission only turns off its feature.
+    public var filesText: String?
     /// The previews step's text: shown only when an extension offers window thumbnails (they need Screen Recording).
     public var previewsText: String?
     private var observation: SettingsObservation?

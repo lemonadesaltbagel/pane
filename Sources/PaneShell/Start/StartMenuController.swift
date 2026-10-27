@@ -30,6 +30,8 @@ public final class StartMenuModel: ObservableObject {
     /// Extensions (pane Pro): making folders, recent files, more All views.
     public var canMakeFolders: () -> Bool = { false }
     public var recentFiles: () -> [RecentFiles.Item] = { [] }
+    /// Under Recent, when some files can't show yet (macOS keeps them private): what to say and what it does.
+    public var recentHint: () -> (text: String, action: () -> Void)? = { nil }
     /// Called as Start opens (an extension refreshes what it shows).
     public var onWillShow: (() -> Void)?
     public struct AllView {

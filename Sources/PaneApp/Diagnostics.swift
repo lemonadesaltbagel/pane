@@ -21,6 +21,8 @@ public enum Diagnostics {
             "previewHelper": FileManager.default.fileExists(atPath: PreviewClient.helperURL.path) ? PreviewClient.helperURL.path : "missing",
             "automation.restart": Power.automationStatus(),
             "loginItem": LoginItem.status,
+            "fullDiskAccess": FileAccess.hasFullDiskAccess ? "granted" : "not granted",
+            "folders": FileAccess.askedForFolders ? (FileAccess.foldersAllowed ? "allowed" : "not allowed") : "not asked",
         ]
         for e in extensions { entries.merge(await e.diagnostics()) { _, new in new } }
         return entries

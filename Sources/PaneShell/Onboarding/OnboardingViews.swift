@@ -92,6 +92,7 @@ struct StepContent: View {
             case .welcome: WelcomeStep(model: model)
             case .accessibility: AccessibilityStep(model: model)
             case .previews: PreviewsStep(model: model)
+            case .files: FilesStep(model: model)
             case .keyboard: model.keyboardStep.map { $0() }
             case .conflicts: ConflictsStep(model: model)
             case .changes: ChangesStep(model: model)
@@ -188,6 +189,53 @@ struct PreviewsStep: View {
     }
 }
 
+
+struct FilesStep: View {
+    @ObservedObject var model: OnboardingModel
+
+    var body: some View {
+        StepHeader(symbol: "doc.text.magnifyingglass", title: "Recent files", text: model.filesText ?? "")
+        FileAccessControls()
+    }
+}
+
+/// Full Disk Access, or only Desktop, Documents and Downloads (the welcome's recent-files step, and Settings). Each is
+/// optional: without them only recent files are missing. The state is read again every second (you turn Full Disk
+/// Access on in System Settings).
+public struct FileAccessControls: View {
+    @State private var level = FileAccess.level
+    @State private var asking = false
+    public init() {}
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            StatusLabel(ok: level != .none, okText: level == .full ? "Full Disk Access is on: every recent file shows"
+                                                                   : "Desktop, Documents and Downloads are allowed (jump lists need Full Disk Access)",
+                        missingText: "Not allowed: recent files from protected folders don't show")
+                .accessibilityIdentifier("files.status")
+                .accessibilityValue(level.rawValue)
+            if level != .full {
+                HStack(spacing: 10) {
+                    Button("Open Full Disk Access…") { FileAccess.openFullDiskAccessSettings() }
+                        .accessibilityIdentifier("files.full")
+                    if level == .none {
+                        Button(asking ? "Asking…" : "Only Desktop, Documents and Downloads") {
+                            asking = true
+                            FileAccess.requestFolders { _ in asking = false; level = FileAccess.level }
+                        }
+                        .disabled(asking)
+                        .accessibilityIdentifier("files.folders")
+                    }
+                }
+                Text("In System Settings, turn on pane under Full Disk Access (add it with + if it isn't listed). It covers every folder and the apps' Open Recent lists.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if !asking { level = FileAccess.level }
+        }
+    }
+}
 
 struct ConflictsStep: View {
     @ObservedObject var model: OnboardingModel

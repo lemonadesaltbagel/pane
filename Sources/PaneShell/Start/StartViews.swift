@@ -65,7 +65,7 @@ struct StartHome: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     if model.prefs[PaneSettings.startShowPinned] { PinnedSection(model: model) }
-                    if model.prefs[PaneSettings.startShowRecent] && !model.recentItems.isEmpty { RecentSection(model: model) }
+                    if model.prefs[PaneSettings.startShowRecent] && (!model.recentItems.isEmpty || model.recentHint() != nil) { RecentSection(model: model) }
                     if model.prefs[PaneSettings.startShowAll] { AllSection(model: model) }
                 }
                 .padding(.horizontal, 28).padding(.bottom, 20)
@@ -315,6 +315,12 @@ struct RecentSection: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("start.recent")
+            if let hint = model.recentHint() {
+                Button(hint.text) { hint.action() }
+                    .buttonStyle(.link)
+                    .font(.system(size: 12))
+                    .accessibilityIdentifier("start.recent.allow")
+            }
         }
     }
 }
