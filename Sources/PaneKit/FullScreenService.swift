@@ -27,7 +27,11 @@ public final class FullScreenService {
 
     private struct Entry { let element: AXUIElement; let restore: CGRect }
     private var entries: [CGWindowID: Entry] = [:]
-    private var dockWasAutoHidden: Bool?
+    /// Your Dock's auto-hide as pane found it, read once: read again later, right after pane's own switch, the Dock can
+    /// still report the old value, and that value became "yours" (the soak left the Dock auto-hidden).
+    private var dockBaseline: Bool?
+    /// pane switched auto-hide on (and must switch it off again).
+    private var hiddenByPane = false
     private var suppressed = false
     private var suppressedDisplay: CGDirectDisplayID?
     private var lastFocused: CGWindowID?
@@ -84,6 +88,17 @@ public final class FullScreenService {
     /// Restores the Dock and leaves every window where it is (pane quitting).
     public func shutdown() { setSuppressed(false) }
 
+    /// Quitting on a signal (from any thread, the main one may be busy): the Dock's live auto-hide goes back now. Its
+    /// settings are restored right after with a Dock restart, and a Dock that quits saves its own live state over them:
+    /// auto-hide stayed on after a full-screen window was focused (found by the soak).
+    public func restoreDockForQuit() {
+        let undo = lock.withLock { () -> Bool in
+            defer { hiddenByPane = false; suppressed = false; suppressedDisplay = nil }
+            return hiddenByPane
+        }
+        if undo { Self.dockSet?(false); PaneLog.write("full screen: the Dock's auto-hide off (quitting)") }
+    }
+
     /// Apps clamp windows to the free area at the moment they're resized, so wait until the Dock is out.
     static func waitForDockToHide(timeout: TimeInterval = 1) {
         let deadline = Date().addingTimeInterval(timeout)
@@ -115,12 +130,17 @@ public final class FullScreenService {
         guard changed else { return }
         // The Dock is on the main display: it auto-hides only for a full-screen window there.
         let dockOut = value && display == nil
-        if dockOut, dockWasAutoHidden == nil {
-            dockWasAutoHidden = Self.dockGet?() ?? false
-            if dockWasAutoHidden == false { Self.dockSet?(true) }
-        } else if !dockOut, dockWasAutoHidden != nil {
-            if dockWasAutoHidden == false { Self.dockSet?(false) }
-            dockWasAutoHidden = nil
+        let baseline = lock.withLock { dockBaseline } ?? (Self.dockGet?() ?? false)
+        let set: Bool? = lock.withLock { () -> Bool? in
+            if dockBaseline == nil { dockBaseline = baseline }
+            guard dockBaseline == false else { return nil } // an auto-hiding Dock needs nothing
+            if dockOut && !hiddenByPane { hiddenByPane = true; return true }
+            if !dockOut && hiddenByPane { hiddenByPane = false; return false }
+            return nil
+        }
+        if let set {
+            Self.dockSet?(set)
+            PaneLog.write("full screen: the Dock's auto-hide \(set ? "on" : "off") (\(value ? "a full-screen window" : "none") focused\(display.map { " on display \($0)" } ?? ""))")
         }
         DispatchQueue.main.async { [weak self] in self?.onTaskbarSuppressed?(value, display) }
     }

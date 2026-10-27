@@ -913,11 +913,12 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
     /// Signals are handled on a background queue and restore the settings directly, so a busy or blocked main
     /// thread (e.g. a modal menu) can't keep the user's Dock/tiling changed after pane is told to quit.
     func installSignalHandlers() {
-        let settings = self.settings
+        let settings = self.settings, fullScreen = self.fullScreen
         for sig in [SIGINT, SIGTERM, SIGHUP] {
             signal(sig, SIG_IGN)
             let source = DispatchSource.makeSignalSource(signal: sig, queue: .global(qos: .userInitiated))
             source.setEventHandler {
+                fullScreen.restoreDockForQuit()
                 if settings.hasPendingBackup {
                     settings.restore()
                     log("system settings restored (signal)")

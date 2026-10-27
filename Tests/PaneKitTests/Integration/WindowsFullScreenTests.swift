@@ -2,6 +2,7 @@
 // Copyright (C) 2026 lemonadesaltbagel
 
 import AppKit
+import Carbon.HIToolbox
 import Testing
 import PaneKit
 import PaneShell
@@ -82,6 +83,73 @@ extension IntegrationTests {
             service.toggle(window)
             #expect(onDesktop)
             #expect(frame.height > 800)
+        }
+
+        /// Quitting on a signal (a logout, `kill`) while a full-screen window has the Dock auto-hidden: the Dock comes
+        /// back as it was. (The soak found auto-hide left on: the quitting Dock saved its live state over the restore.)
+        @Test func signalWhileFullScreenRestoresTheDock() async throws {
+            let before = Self.dockAutoHidden()
+            defer {
+                // If it failed, put your Dock back.
+                if Self.dockAutoHidden() != before {
+                    CFPreferencesSetAppValue("autohide" as CFString, before as CFBoolean, "com.apple.dock" as CFString)
+                    CFPreferencesAppSynchronize("com.apple.dock" as CFString)
+                    SystemSettings.restartOwner("com.apple.dock")
+                }
+            }
+            let f = try await Fixture.launch(label: "Q", windows: ["A"], frame: CGRect(x: 200, y: 200, width: 500, height: 320))
+            defer { f.quit() }
+            let pane = try Harness.launchAgent()
+            var stopped = false
+            defer { if !stopped { stopAgent(pane) } }
+            await Harness.agentReady()
+            let window = try f.requireWindow("A")
+            Focus.focus(window, using: .skyLight)
+            _ = await eventually { AX.frontmostPID() == f.pid }
+            SyntheticKeyboard.press(kVK_ANSI_F, [.maskControl, .maskCommand])
+            let hidden = await eventually(timeout: 4) { DockReservation.bottomInset() < 8 }
+            stopAgent(pane); stopped = true // SIGTERM
+            let back = await eventually(timeout: 8) { Self.dockAutoHidden() == before && DockReservation.bottomInset() > 8 }
+            let note = "full screen hid the Dock \(hidden); after SIGTERM auto-hide is yours again (\(before)) \(Self.dockAutoHidden() == before), reserved space \(Int(DockReservation.bottomInset()))"
+            Report.record("Windows full screen · quit on a signal", note)
+            print("FS-SIGNAL: " + note)
+            #expect(hidden && back)
+        }
+
+        /// Focus going to and from a full-screen window quickly, then a quit: the Dock isn't left auto-hidden. (Read just
+        /// after pane's own switch, the Dock still reported auto-hide, and that became "yours".)
+        @Test func quickFocusChangesLeaveTheDockAlone() async throws {
+            let before = Self.dockAutoHidden()
+            defer {
+                if Self.dockAutoHidden() != before {
+                    CFPreferencesSetAppValue("autohide" as CFString, before as CFBoolean, "com.apple.dock" as CFString)
+                    CFPreferencesAppSynchronize("com.apple.dock" as CFString)
+                    SystemSettings.restartOwner("com.apple.dock")
+                }
+            }
+            let f = try await Fixture.launch(label: "R", windows: ["A", "B"], frame: CGRect(x: 200, y: 200, width: 500, height: 320))
+            defer { f.quit() }
+            let pane = try Harness.launchAgent()
+            var stopped = false
+            defer { if !stopped { stopAgent(pane) } }
+            await Harness.agentReady()
+            let a = try f.requireWindow("A"), b = try f.requireWindow("B")
+            Focus.focus(a, using: .skyLight)
+            _ = await eventually { AX.frontmostPID() == f.pid }
+            SyntheticKeyboard.press(kVK_ANSI_F, [.maskControl, .maskCommand])
+            _ = await eventually(timeout: 4) { DockReservation.bottomInset() < 8 }
+            for i in 0..<16 {
+                Focus.focus(i.isMultiple(of: 2) ? b : a, using: .skyLight)
+                try? await Task.sleep(nanoseconds: UInt64(Int.random(in: 60...400)) * 1_000_000)
+            }
+            Focus.focus(b, using: .skyLight)
+            let shownAgain = await eventually(timeout: 4) { DockReservation.bottomInset() > 8 }
+            stopAgent(pane); stopped = true
+            let yours = await eventually(timeout: 8) { Self.dockAutoHidden() == before }
+            let note = "after 16 quick focus changes the Dock came back \(shownAgain); after quitting, auto-hide is yours (\(before)) \(yours)"
+            Report.record("Windows full screen · quick focus changes", note)
+            print("FS-RACE: " + note)
+            #expect(shownAgain && yours)
         }
     }
 }
