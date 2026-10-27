@@ -34,7 +34,7 @@ public struct ManagedWindow: Equatable, Identifiable {
     }
 }
 
-/// The live list of user windows, WindowServer-first (KNOWLEDGE.md §2): CGWindowList + Space membership is the
+/// The live list of user windows, WindowServer-first: CGWindowList + Space membership is the
 /// source of truth, AX adds titles/subroles/minimized for windows it can reach. Windows on Spaces that aren't
 /// shown are invisible to `kAXWindows`, so they come from the WindowServer, with titles remembered from the
 /// last time AX could see them.

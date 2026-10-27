@@ -10,7 +10,7 @@ import ApplicationServices
 /// magnification, bottom) reserves exactly the bar's height in every screen's `visibleFrame`, so every app's
 /// own zoom/Fill and pane's snapping stop above the bar. The taskbar panel is drawn over the Dock.
 ///
-/// Measured on macOS 26 (KNOWLEDGE.md): reserved height = tile size + 20 pt for small tiles (16→36, 24→44,
+/// Measured on macOS 26: reserved height = tile size + 20 pt for small tiles (16→36, 24→44,
 /// 32→52), so `apply` starts from that and corrects by re-measuring.
 public final class DockReservation {
     public let settings: SystemSettings

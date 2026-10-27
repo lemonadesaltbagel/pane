@@ -4,7 +4,7 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Windows keyboard behaviors on top of `KeyTap`. ⌘ = Win, ⌥ = Alt (PLAN.md).
+/// Windows keyboard behaviors on top of `KeyTap`. ⌘ = Win, ⌥ = Alt.
 ///
 /// The ⌘ chords that collide with macOS text navigation and app shortcuts (⌘←/→/↑/↓, ⌘1…9) are behind
 /// their own switches, off by default: which ⌘ chords pane claims is a decision the user deferred.

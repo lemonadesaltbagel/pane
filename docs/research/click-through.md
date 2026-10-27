@@ -174,7 +174,7 @@ Two families: **(A) focus-follows-mouse / raise-on-hover** (AutoRaise, yabai, Am
 
 * **`activate()` from a background agent is unreliable on macOS 14+.** `ignoringOtherApps` "is deprecated in macOS 14 and will have no effect" (`AppKit.framework/Headers/NSRunningApplication.h:27`). Activation is now *cooperative*: the active app should `yieldActivation(to:)` first (`NSApplication.h:224-249`), and `activate(from:options:)` says so explicitly (`NSRunningApplication.h:135-144`).
   * realDGD: plain `activate()` (their "A1") made a refuse-first-mouse target accept the click only when the probe itself was the frontmost source. Writing `AXFrontmost` (their "A3") worked with Chrome or Codex frontmost.
-  * pane's own tests saw `NSWorkspace.openApplication(activates:)` refused (`KNOWLEDGE.md:60`).
+  * pane's own tests saw `NSWorkspace.openApplication(activates:)` refused.
 * **Raising is not focusing.** For an AppKit app with several windows, `AXRaise` alone got 0/3 clicks delivered. Adding `AXMain`/`AXFocused` and re-asserting every 30 ms got 12/12 (PirouzSR `WindowActivator.swift:110-124` and README).
 * **`activate()` raises all the app's windows**, including ones on other displays. PirouzSR has to put back the displaced windows at 40/130/310 ms. pane's SkyLight path (`_SLPSSetFrontProcessWithOptions(…, 0x200)`) fronts only one window and avoids this (`research/README.md` feature 1).
 * **Cost.** "13-40 ms" per activating click. Tap limits: "the window server left the tap alone at 1000 ms and disabled it at 1500 ms". A tap that has been disabled only hears about it on the next event, so PirouzSR runs a 1 s re-arm watchdog.
@@ -271,7 +271,7 @@ on leftMouseDown(event):
 | Double-click into an inactive window | `clickState` is assigned before the session tap, so counting is unaffected. The first down is delayed by about 40 ms or less, still well inside the double-click interval | Pass `clickState ≥ 2` untouched (step 0) |
 | Right/⌃-click (context menu) | Unchanged: macOS opens context menus in background windows without activating | Possible "Windows strict" option: activate on right-down with the same algorithm |
 | Menus open / menu bar / status items / Dock / Notification Center / Control Center | Untouched (layer gates, layer-101 rule) | — |
-| pane's own taskbar, previews, flyouts | Untouched (own pid). They already accept first mouse (`KNOWLEDGE.md:304`) | — |
+| pane's own taskbar, previews, flyouts | Untouched (own pid). They already accept first mouse | — |
 | Destructive controls whose authors refused click-through (HIG) | **Now fire on the first click.** This is the Windows trade-off and the point of the feature, but users should know | Default exclusion list; per-app toggle; ⌘ bypass |
 | Slow or hung target app | Waits up to the budget, then delivers → native result (the click only activates). Input pauses up to 150–200 ms in that case | Short AX timeouts (30 ms per call); fast path avoids IPC for most clicks |
 | Electron / Chrome | Gains click-through (default `acceptFirstMouse=false`). Hover state may be stale on the first click because inactive Chromium windows ignore mouse-moved | Measure; optionally post nothing (a synthetic mouse-moved would be a synthetic event) |

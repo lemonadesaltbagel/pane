@@ -6,7 +6,7 @@ import ApplicationServices
 
 /// Windows-style click-through: the first click on an inactive window both activates it and acts.
 ///
-/// Measured on macOS 26 (KNOWLEDGE.md §11): scrolling inactive windows already works natively, AppKit buttons
+/// Measured on macOS 26: scrolling inactive windows already works natively, AppKit buttons
 /// already accept the first click, but plain content views (AppKit's default `acceptsFirstMouse` = NO) eat it —
 /// the click only activates. That decision lives inside the target app's views and can't be changed from
 /// outside, so pane compensates: it holds the mouse-down on an inactive window, brings that window forward,

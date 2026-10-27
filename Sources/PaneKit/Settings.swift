@@ -261,7 +261,7 @@ public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
     public let rawValue: String
     public let title: String
     /// The binding pane uses when nothing is stored. The ⌘ arrows and ⌘ digits are nil (off) until the ⌘ = Win chord
-    /// set is decided (PLAN.md: deferred decision); the keyboard presets (`ShortcutPresets`) offer complete sets.
+    /// set is decided (a deferred decision); the keyboard presets (`ShortcutPresets`) offer complete sets.
     public let defaultBinding: KeyBinding?
     /// Rebinding is honoured by HotkeyService (the rest are reserved: stored, shown greyed out).
     public let isImplemented: Bool

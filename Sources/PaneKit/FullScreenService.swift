@@ -8,7 +8,7 @@ import ApplicationServices
 /// taskbar gets out of the way while that window is focused — it comes back as soon as another window is
 /// focused, like Windows.
 ///
-/// Measured on macOS 26 (KNOWLEDGE.md §12):
+/// Measured on macOS 26:
 /// - AppKit clamps every app's window below the menu bar and above the Dock (Edge, VS Code, Finder, fixture) —
 ///   so pane frees the bottom by switching the Dock to auto-hide live (`CoreDockSetAutoHideEnabled`, no
 ///   restart) while a full-screen window is focused;
