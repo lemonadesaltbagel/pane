@@ -151,6 +151,23 @@ For each part below:
     `start.jump.<letter>`;
   - bottom bar: `start.account`, `start.place.<name>`, `start.power`.
 
+## As an app
+
+`scripts/make-app.sh [--release] [--version X] [--product P --name N --bundle-id ID --package DIR]` builds a local,
+ad-hoc-signed app around an agent: an agent `Info.plist` (no Dock icon), the preview helper in `Contents/Helpers`. An
+extension's package builds its own agent with `--package`. It only replaces files that changed, so an unchanged rebuild
+keeps the signature and the grants tied to it.
+- **`AppBundle`:** `isApp`, `version`, `helpers`.
+- **`LoginItem`:** in an app, `SMAppService.mainApp`, removing an older LaunchAgents plist; outside one (or with
+  `PANE_LAUNCH_AGENTS_DIR`), the plist. `status` for diagnostics.
+- **`PreviewClient.helperURL`:** the app's own helper first.
+- **`pane --report <file>`** (`Diagnostics`): JSON of what macOS lets this copy do. It covers the version, app or not,
+  Accessibility, Screen Recording, `Power.automationStatus()` (Automation for restart, determined without sending
+  anything) and the login item. It names no windows and no other apps. Extensions add entries with
+  `PaneExtension.diagnostics()`. Launched through LaunchServices (`open -W -a … --args --report …`) it answers for the
+  app; run from Terminal it answers for Terminal.
+- **Tests:** `AppUnderTest` (PaneTestKit) launches a built app through LaunchServices with the test isolation.
+
 ## Multiple displays
 
 Windows 11's behaviour (the plan's table is in pane Pro's research notes; tests in `MultiDisplayTests`):

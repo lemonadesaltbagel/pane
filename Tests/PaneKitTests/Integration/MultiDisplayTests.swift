@@ -243,5 +243,31 @@ extension IntegrationTests {
             Report.record("Multiple displays · full screen", note)
             print("MULTI-DISPLAY-FS: " + note)
         }
+
+        /// A window minimized on the second display, which then goes: un-minimized, it comes back on the main display
+        /// (macOS restores it where the display was).
+        @Test func unminimizedAfterItsDisplayWent() async throws {
+            let f = try await Fixture.launch(label: "U", windows: ["A"], frame: CGRect(x: 200, y: 200, width: 500, height: 320))
+            defer { f.quit() }
+            let pane = try Self.launchAgent()
+            defer { stopAgent(pane) }
+            await Self.agentReady()
+            let window = try f.requireWindow("A")
+            let display = try #require(await SecondDisplay.add())
+            let second = try #require(await MainActor.run { SecondDisplay.frame })
+            AX.setFrame(window, CGRect(x: second.minX + 300, y: second.minY + 200, width: 500, height: 320))
+            await settle(0.5)
+            AX.set(window, kAXMinimizedAttribute, kCFBooleanTrue)
+            _ = await eventually(timeout: 3) { AX.isMinimized(window) }
+            display.remove()
+            await settle(3)
+            AX.set(window, kAXMinimizedAttribute, kCFBooleanFalse)
+            let main = Geometry.screenFramesAX[0]
+            let back = await eventually(timeout: 5) { AX.frame(window).map { main.intersection($0).width >= 100 && main.intersection($0).height >= 100 } ?? false }
+            let note = "minimized on the second display, which went; un-minimized on the main display \(back) (\(Self.describe(AX.frame(window))))"
+            Report.record("Multiple displays · un-minimized after its display went", note)
+            print("MULTI-DISPLAY-UNMIN: " + note)
+            #expect(back)
+        }
     }
 }

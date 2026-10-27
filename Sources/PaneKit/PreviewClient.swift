@@ -12,8 +12,10 @@ public enum PreviewClient {
     public static let bundleID = "dev.pane.preview"
     public static let protocolVersion = 1
 
+    /// The app's own helper (inside the bundle), else the one `scripts/install-preview-helper.sh` installs.
     public static var helperURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        if let inside = AppBundle.helpers?.appendingPathComponent("PanePreview.app"), FileManager.default.fileExists(atPath: inside.path) { return inside }
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Pane/PanePreview.app")
     }
 

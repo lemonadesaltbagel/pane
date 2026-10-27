@@ -76,6 +76,20 @@ public enum Power {
         do { _ = try event.sendEvent(options: [.noReply], timeout: 10); return true } catch { return false }
     }
 
+    /// Whether macOS lets pane send loginwindow the restart event without asking (Automation): determined, nothing is
+    /// sent. "allowed", "will ask", "denied", or why it couldn't tell.
+    public static func automationStatus() -> String {
+        guard let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.loginwindow").aeDesc else { return "unknown" }
+        let status = AEDeterminePermissionToAutomateTarget(target, AEEventClass(kCoreEventClass), fourCharCode("rest"), false)
+        switch Int(status) {
+        case Int(noErr): return "allowed"
+        case -1744: return "will ask" // errAEEventWouldRequireUserConsent
+        case -1743: return "denied" // errAEEventNotPermitted
+        case -600: return "loginwindow not running" // procNotFound
+        default: return "status \(status)"
+        }
+    }
+
     static func fourCharCode(_ s: String) -> FourCharCode { s.utf8.reduce(0) { ($0 << 8) | FourCharCode($1) } }
 }
 

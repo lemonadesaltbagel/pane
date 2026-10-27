@@ -39,6 +39,8 @@ public protocol PaneExtension: AnyObject {
     func configureSettings(_ model: SettingsModel)
     /// The welcome (onboarding) was made: add its keyboard step, a note.
     func configureOnboarding(_ model: OnboardingModel)
+    /// Entries for `pane --report` (no window titles, no other apps' names). Runs without the agent started.
+    func diagnostics() async -> [String: String]
 }
 
 public extension PaneExtension {
@@ -52,6 +54,7 @@ public extension PaneExtension {
     func handle(_ message: String) -> Bool { false }
     func configureSettings(_ model: SettingsModel) {}
     func configureOnboarding(_ model: OnboardingModel) {}
+    func diagnostics() async -> [String: String] { [:] }
 }
 
 /// Which windows are on the virtual desktop shown now (pane Pro's virtual desktops answer; without them, all are).

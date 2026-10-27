@@ -2,6 +2,7 @@
 // Copyright (C) 2026 lemonadesaltbagel
 
 import AppKit
+import ServiceManagement
 
 /// "Pause pane" (setting `general.paused`): every key and mouse handler of pane lets events through untouched and
 /// quit-on-last-window stops deciding. pane's own taskbar and tray keep working. Read per event: keep it cheap.
@@ -25,11 +26,40 @@ public enum LoginItem {
         return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents")
     }
     public static var plistURL: URL { directory.appendingPathComponent("\(label).plist") }
-    public static var isEnabled: Bool { FileManager.default.fileExists(atPath: plistURL.path) }
 
-    /// Writes or removes the LaunchAgent. `executable`: what to start (default: this process's binary).
+    /// An app starts at login through `SMAppService` (System Settings ▸ General ▸ Login Items lists it); a bare binary
+    /// through a LaunchAgents plist. A test pointing `PANE_LAUNCH_AGENTS_DIR` somewhere always gets the plist.
+    static var usesService: Bool { AppBundle.isApp && ProcessInfo.processInfo.environment["PANE_LAUNCH_AGENTS_DIR"] == nil }
+
+    /// On, or waiting for your approval in Login Items.
+    public static var isEnabled: Bool {
+        if usesService { return [.enabled, .requiresApproval].contains(SMAppService.mainApp.status) }
+        return FileManager.default.fileExists(atPath: plistURL.path)
+    }
+
+    /// For diagnostics: "on", "off", "waiting for approval in Login Items", "plist at …".
+    public static var status: String {
+        guard usesService else { return isEnabled ? "plist at \(plistURL.path)" : "off (plist)" }
+        switch SMAppService.mainApp.status {
+        case .enabled: return "on"
+        case .requiresApproval: return "waiting for approval in Login Items"
+        case .notRegistered: return "off"
+        case .notFound: return "not found (the app isn't where macOS expects it)"
+        @unknown default: return "unknown"
+        }
+    }
+
+    /// Turns start at login on or off. `executable`: what the plist starts (default: this process's binary).
     @discardableResult
     public static func set(_ enabled: Bool, executable: String = CommandLine.arguments[0]) -> Bool {
+        if usesService {
+            // An older pane's plist would start a second copy at login.
+            if FileManager.default.fileExists(atPath: plistURL.path) { try? FileManager.default.removeItem(at: plistURL) }
+            do {
+                if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+                return true
+            } catch { return false }
+        }
         if !enabled {
             guard isEnabled else { return true }
             return (try? FileManager.default.removeItem(at: plistURL)) != nil

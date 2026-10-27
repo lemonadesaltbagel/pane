@@ -53,6 +53,19 @@ helper itself.
   - ⌃⌘F is full screen on the current desktop.
 - **Rebinding:** every shortcut can be rebound in Settings ▸ Keyboard; *Restore Mac shortcuts* puts the Mac set back.
 
+**As an app:** `scripts/make-app.sh` builds `.build/app/pane.app`. It's a local, ad-hoc-signed bundle for trying pane as a
+Mac app; it isn't signed for release. `open .build/app/pane.app` starts it like any app. Quit it from its menu-bar icon.
+- **Permissions:** macOS checks them against the app, not Terminal. Grant pane.app Accessibility (and Screen Recording
+  for the bundled preview helper) the first time. An ad-hoc signature ties a grant to the build: when the script says
+  "new signature", grant them again. `PANE_SIGN_IDENTITY` signs with your own identity instead.
+- **What it may do:** `open -W .build/app/pane.app --args --report /tmp/pane-report.json` writes what macOS lets the
+  app do: permissions, Automation for restart, the login item, the version.
+- **By hand, once per build:**
+  - Settings ▸ General ▸ *Start pane at login* on: pane.app is listed in System Settings ▸ General ▸ Login Items. Then
+    off: it's gone.
+  - Start's *Restart*: if macOS asks whether pane may control "loginwindow", cancel it, then check the report.
+  - Start shows recent files.
+
 **More than one display:** each display gets a taskbar (Settings ▸ Taskbar ▸ *Show my taskbar on all displays*), and
 *When using multiple displays, show my taskbar apps on* picks which bar lists a window. ⌃⌥⌘← / → move the focused
 window to the other display. `pane-probe virtual-display 1920 1080 30` adds a virtual display for 30 s to try it
@@ -90,6 +103,8 @@ and `--unit` on a macOS 26 runner. The integration tests need Accessibility and 
 - **Login items:** test agents never touch yours, unless a test points `PANE_LAUNCH_AGENTS_DIR` at its own folder.
 - **Power:** a test agent never sleeps, restarts or shuts down the Mac (`PANE_FAKE_POWER` logs the action instead).
 - **Screenshots:** a test agent never opens the capture tool (`PANE_FAKE_SCREENSHOT` logs instead).
+- **As an app:** the app suites (`AppBundleTests`) run only once `scripts/make-app.sh` has built the app. They start it
+  through LaunchServices with the same isolation (`open --env`), never register a login item, and quit it with SIGTERM.
 - **A second display:** the multiple-display suites add a virtual display (no hardware) right of the main one for a
   test and remove it after. Only fixture windows go there, and the test checks none of yours moved.
 - **Welcome:** it shows in a test agent only with `PANE_ONBOARDING=1`.

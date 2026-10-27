@@ -16,6 +16,14 @@ public enum PaneMain {
         if CommandLine.arguments.contains(where: { $0.hasSuffix("-scope") }) && ProcessInfo.processInfo.environment["PANE_DEFAULTS_SUITE"] == nil {
             setenv("PANE_DEFAULTS_SUITE", "pane-test-agent", 1)
         }
+        // `--report <file>`: diagnostics, then exit; runs beside a running pane (no lock).
+        if let i = CommandLine.arguments.firstIndex(of: "--report"), CommandLine.arguments.indices.contains(i + 1) {
+            let path = CommandLine.arguments[i + 1]
+            let app = NSApplication.shared
+            app.setActivationPolicy(.prohibited)
+            Task { @MainActor in await Diagnostics.write(to: path, extensions: extensions()) }
+            app.run()
+        }
         instanceLock = takeLockOrHandOver()
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)

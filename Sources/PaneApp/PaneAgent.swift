@@ -118,6 +118,7 @@ struct Arguments {
             case "--open-settings": _ = it.next() // handled once running (or by the running agent)
             case "--restart": break
             case "--takeover": takeover = true
+            case "--report": _ = it.next() // handled before anything starts (PaneMain)
             default: log("unknown argument \(arg)")
             }
         }
@@ -170,6 +171,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
     var restored = false
     var updateChecks: Task<Void, Never>?
     var screenObserver: NSObjectProtocol?
+    var minimizedWindows: Set<CGWindowID> = []
     var updateChecksOn: Bool?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -525,6 +527,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
                 }
                 self?.extensions.forEach { $0.windowsChanged(windows) }
                 if self?.config.quitOnLastWindow == true { self?.lifecycle.inventoryChanged(windows) }
+                self?.bringBackUnminimized(windows)
             }
         }
         inventory.start()
@@ -673,7 +676,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         if let duration = args.duration {
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) { NSApp.terminate(nil) }
         }
-        log("running (pid \(getpid())); Ctrl-C to quit and restore settings")
+        log("running (pid \(getpid())); \(AppBundle.isApp ? "quit from pane's menu-bar icon" : "Ctrl-C to quit") and restore settings")
     }
 
     // MARK: Start
@@ -795,6 +798,19 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async { [weak taskbars] in MainActor.assumeIsolated { taskbars?.syncSettings() } }
         }
         inventory.scheduleRefresh() // the window filters changed
+    }
+
+    /// A window un-minimized where its display used to be (macOS restores it there, off screen) comes to the main
+    /// display, as Windows does. Only windows that were minimized a moment ago are checked.
+    func bringBackUnminimized(_ windows: [ManagedWindow]) {
+        let wasMinimized = minimizedWindows
+        minimizedWindows = Set(windows.filter(\.isMinimized).map(\.id))
+        guard !args.dryRun else { return }
+        let restored = windows.filter { !$0.isMinimized && wasMinimized.contains($0.id) && desktopMembership.isOnCurrent($0.id) }
+            .filter { w in args.desktopScope.map { $0.contains(w.bundleID ?? "") } ?? true }
+        guard !restored.isEmpty else { return }
+        let moved = snap.bringBackStrandedWindows(restored) { [inventory] in inventory.element(for: $0) }
+        if moved > 0 { log("brought \(moved) un-minimized window(s) back on screen") }
     }
 
     /// `general.checkForUpdates`: 30 s after launch, then daily. A newer release shows in pane's menu.
