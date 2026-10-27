@@ -69,7 +69,7 @@ extension IntegrationTests {
                 func walk(_ e: AXUIElement) { if let t = AX.title(e), t.hasPrefix("switcher: ") { tiles.append(t) }; for c in (AX.get(e, kAXChildrenAttribute) as [AXUIElement]?) ?? [] { walk(c) } }
                 walk(sw)
             }
-            SyntheticKeyboard.tapKey(kVK_Escape, flags: .maskAlternate) // the switcher has the keys: Esc cancels
+            pressEscape(flags: .maskAlternate) // the switcher has the keys: Esc cancels
             SyntheticKeyboard.releaseModifiers(.maskAlternate)
             let notInSwitcher = !tiles.contains("switcher: H A")
             let note = "no taskbar button \(noButton); Alt+Tab tiles \(tiles.count), the hidden app's window not among them \(notInSwitcher)"

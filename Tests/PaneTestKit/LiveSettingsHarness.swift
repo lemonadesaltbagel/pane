@@ -27,7 +27,7 @@ public extension LiveSettingsHarness {
         _ = await eventually(timeout: 2) { !switcherTiles(pane.processIdentifier).isEmpty }
         try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) // time for thumbnails to arrive (if any)
         let tiles = switcherTiles(pane.processIdentifier)
-        SyntheticKeyboard.tapKey(kVK_Escape, flags: .maskAlternate)
+        pressEscape(flags: .maskAlternate)
         SyntheticKeyboard.releaseModifiers(.maskAlternate)
         return tiles
     }

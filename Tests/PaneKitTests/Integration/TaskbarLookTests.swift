@@ -29,7 +29,7 @@ extension IntegrationTests {
                 bar.show()
                 return bar
             }
-            defer { Task { @MainActor in bar.close() } }
+            defer { MainActor.assumeIsolatedOrSync { bar.close() } }
             for _ in 0..<20 {
                 let windows = inventory.refreshNow()
                 await MainActor.run { bar.update(windows) }

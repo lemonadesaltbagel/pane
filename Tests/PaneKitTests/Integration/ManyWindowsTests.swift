@@ -35,7 +35,7 @@ extension IntegrationTests {
             // 2. The taskbar update with all of them (per-window buttons: the most work), in-process.
             let bar = await MainActor.run { TaskbarPanel(inventory: inventory, height: 48, mode: .never) }
             await MainActor.run { bar.show() }
-            defer { Task { @MainActor in bar.close() } }
+            defer { MainActor.assumeIsolatedOrSync { bar.close() } }
             var updateMs: [Double] = []
             for i in 0..<5 {
                 let windows = all
@@ -63,7 +63,7 @@ extension IntegrationTests {
             SyntheticKeyboard.tapKey(kVK_Tab, flags: .maskAlternate)
             _ = await eventually(timeout: 3) { shown("Pane Switcher") }
             let switcherMs = Date().timeIntervalSince(t) * 1000
-            SyntheticKeyboard.tapKey(kVK_Escape, flags: .maskAlternate)
+            pressEscape(flags: .maskAlternate)
             SyntheticKeyboard.releaseModifiers(.maskAlternate)
             await settle(0.8)
             guard await eventually(timeout: 2, { NSWorkspace.shared.frontmostApplication?.processIdentifier == apps[0].pid }) else { Issue.record("fixture not in front"); return }
@@ -71,7 +71,7 @@ extension IntegrationTests {
             SyntheticKeyboard.press(kVK_Tab, [.maskControl, .maskCommand])
             _ = await eventually(timeout: 4) { shown("Pane Task View") }
             let taskViewMs = Date().timeIntervalSince(t) * 1000
-            SyntheticKeyboard.press(kVK_Escape) // Task View has the keys while open
+            pressEscape() // Task View has the keys while open
             await settle(1.0)
             // Idle: CPU over 10 s, memory.
             func ps(_ field: String) -> Double {

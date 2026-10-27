@@ -31,7 +31,7 @@ extension IntegrationTests {
                 inventory.start()
                 bar.show()
             }
-            defer { Task { @MainActor in bar.close(); inventory.stop() } }
+            defer { MainActor.assumeIsolatedOrSync { bar.close(); inventory.stop() } }
             defer { SyntheticKeyboard.releaseAllModifiers() }
             let groupTitle = "group: PaneFixture (3)"
             let grouped = await eventually(timeout: 4) { MainActor.assumeIsolatedOrSync { Harness.center(of: groupTitle, in: bar.panel) != nil } }

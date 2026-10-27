@@ -64,7 +64,7 @@ extension IntegrationTests {
             await settle(0.3)
             SyntheticKeyboard.holdModifiers(.maskAlternate)
             SyntheticKeyboard.tapKey(kVK_Tab, flags: .maskAlternate)
-            SyntheticKeyboard.tapKey(kVK_Escape, flags: .maskAlternate)
+            pressEscape(flags: .maskAlternate)
             SyntheticKeyboard.releaseModifiers(.maskAlternate)
             await settle(0.5)
             let stayedC = AX.focusedWindow(of: f.pid).flatMap(AX.title) == "W C"

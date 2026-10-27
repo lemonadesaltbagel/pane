@@ -58,7 +58,7 @@ extension IntegrationTests {
                 inventory.start()
                 bar.show()
             }
-            defer { Task { @MainActor in bar.close(); inventory.stop() } }
+            defer { MainActor.assumeIsolatedOrSync { bar.close(); inventory.stop() } }
             #expect(await eventually(timeout: 3) { MainActor.assumeIsolatedOrSync { bar.items.contains { $0.title == "K B" } } })
             let barWID = CGWindowID(await MainActor.run { bar.panel.windowNumber })
             let panelWindow = try #require(WindowServer.windows().first { $0.id == barWID })
@@ -103,7 +103,7 @@ extension IntegrationTests {
             let inventory = WindowInventory()
             let bar = await MainActor.run { TaskbarPanel(inventory: inventory, height: Self.barHeight) }
             await MainActor.run { bar.show() }
-            defer { Task { @MainActor in bar.close() } }
+            defer { MainActor.assumeIsolatedOrSync { bar.close() } }
             let barWID = CGWindowID(await MainActor.run { bar.panel.windowNumber })
             let find = { WindowServer.windows(onScreenOnly: false).first { $0.id == barWID } }
             _ = await eventually { find()?.isOnScreen == true }

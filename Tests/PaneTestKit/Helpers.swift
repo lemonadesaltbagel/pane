@@ -3,6 +3,7 @@
 
 import AppKit
 import PaneKit
+import Carbon.HIToolbox
 
 /// Polls `condition` until it holds or `timeout` passes. Window state changes are asynchronous IPC, so
 /// every integration assertion goes through this instead of a fixed sleep.
@@ -88,4 +89,15 @@ public func stopAgent(pid: pid_t, timeout: TimeInterval = 8) {
     let deadline = Date().addingTimeInterval(timeout)
     while kill(pid, 0) == 0 && Date() < deadline { Thread.sleep(forTimeInterval: 0.05) }
     if kill(pid, 0) == 0 { kill(pid, SIGKILL) }
+}
+
+/// Esc for the frontmost app, unless that's a terminal: there it would interrupt whatever runs (a Claude session).
+/// Tests press Esc only through this.
+/// `flags`: with modifiers held (⌥Esc cancels Alt+Tab while ⌥ is down).
+public func pressEscape(flags: CGEventFlags = []) {
+    if let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier, PaneSettings.terminals.contains(front) {
+        print("TEST: Esc skipped (a terminal is frontmost)")
+        return
+    }
+    if flags.isEmpty { SyntheticKeyboard.press(kVK_Escape) } else { SyntheticKeyboard.tapKey(kVK_Escape, flags: flags) }
 }

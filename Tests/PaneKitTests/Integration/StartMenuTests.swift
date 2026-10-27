@@ -67,7 +67,7 @@ extension IntegrationTests {
             _ = await Self.open(pid)
             var escClosed = false
             if NSWorkspace.shared.frontmostApplication?.processIdentifier == f.pid {
-                SyntheticKeyboard.press(kVK_Escape)
+                pressEscape()
                 escClosed = await eventually(timeout: 2) { !Self.shown(pid) }
             }
             // The Start button.

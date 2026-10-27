@@ -38,7 +38,7 @@ extension IntegrationTests {
                 inventory.start()
                 bar.show()
             }
-            defer { Task { @MainActor in bar.close(); inventory.stop() } }
+            defer { MainActor.assumeIsolatedOrSync { bar.close(); inventory.stop() } }
             let listed = await eventually(timeout: 4) { MainActor.assumeIsolatedOrSync { bar.presentation.buttons.contains { $0.id == "win:\(fullWID)" } } }
             let entry = inventory.windows.first { $0.id == fullWID }
             let title = entry?.title ?? "?"
