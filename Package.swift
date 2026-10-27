@@ -12,12 +12,18 @@ let cltFrameworks = "/Library/Developer/CommandLineTools/Library/Developer/Frame
 let activeDeveloperDir = ProcessInfo.processInfo.environment["DEVELOPER_DIR"]
     ?? (try? FileManager.default.destinationOfSymbolicLink(atPath: "/var/db/xcode_select_link"))
 let usingCommandLineTools = activeDeveloperDir?.hasPrefix("/Library/Developer/CommandLineTools") ?? true
+// With Xcode, the runner (an executable, not a test bundle) needs Xcode's Swift Testing on its rpath.
+func xcodeTestingRPaths(_ developer: String) -> (swift: [SwiftSetting], linker: [LinkerSetting]) {
+    let platform = "\(developer)/Platforms/MacOSX.platform/Developer"
+    return ([], [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "\(platform)/Library/Frameworks",
+                               "-Xlinker", "-rpath", "-Xlinker", "\(platform)/usr/lib"])])
+}
 let testingFlags: (swift: [SwiftSetting], linker: [LinkerSetting]) =
     usingCommandLineTools && FileManager.default.fileExists(atPath: "\(cltFrameworks)/Testing.framework")
         ? ([.unsafeFlags(["-F", cltFrameworks])],
            [.unsafeFlags(["-F", cltFrameworks, "-Xlinker", "-rpath", "-Xlinker", cltFrameworks,
                           "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib"])])
-        : ([], [])
+        : (activeDeveloperDir.map { xcodeTestingRPaths($0) } ?? ([], []))
 
 let package = Package(
     name: "pane",
