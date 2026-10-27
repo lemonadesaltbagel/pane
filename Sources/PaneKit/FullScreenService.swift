@@ -21,13 +21,15 @@ public final class FullScreenService {
     private static let dockSet: DockSetFn? = dlsym(services, "CoreDockSetAutoHideEnabled").map { unsafeBitCast($0, to: DockSetFn.self) }
     private static let dockGet: DockGetFn? = dlsym(services, "CoreDockGetAutoHideEnabled").map { unsafeBitCast($0, to: DockGetFn.self) }
 
-    /// Called on the main queue: true while a full-screen window is focused (hide the taskbar).
-    public var onTaskbarSuppressed: ((Bool) -> Void)?
+    /// Called on the main queue: true while a full-screen window is focused (hide the taskbar), with its display (nil:
+    /// the main one, where the Dock is). Another display's bar is the only one that goes for a window there.
+    public var onTaskbarSuppressed: ((Bool, CGDirectDisplayID?) -> Void)?
 
     private struct Entry { let element: AXUIElement; let restore: CGRect }
     private var entries: [CGWindowID: Entry] = [:]
     private var dockWasAutoHidden: Bool?
     private var suppressed = false
+    private var suppressedDisplay: CGDirectDisplayID?
     private var lastFocused: CGWindowID?
     private let lock = NSLock()
 
@@ -48,8 +50,9 @@ public final class FullScreenService {
                 Thread.sleep(forTimeInterval: 1.0)
             }
             lock.withLock { entries[wid] = Entry(element: window, restore: AX.frame(window) ?? frame) }
-            setSuppressed(true)
-            Self.waitForDockToHide()
+            let display = Self.display(of: window)
+            setSuppressed(true, on: display)
+            if display == nil { Self.waitForDockToHide() }
             fill(window)
         }
     }
@@ -64,9 +67,10 @@ public final class FullScreenService {
             return wid != lastFocused
         }) else { return }
         let entry = wid.flatMap { id in lock.withLock { entries[id] } }
-        setSuppressed(entry != nil)
+        let display = entry.flatMap { Self.display(of: $0.element) }
+        setSuppressed(entry != nil, on: display)
         if let entry {
-            Self.waitForDockToHide()
+            if display == nil { Self.waitForDockToHide() }
             fill(entry.element)
         }
     }
@@ -94,20 +98,30 @@ public final class FullScreenService {
         AX.setFrame(window, CGRect(x: full.minX, y: full.minY + menuBar, width: full.width, height: full.height - menuBar))
     }
 
-    private func setSuppressed(_ value: Bool) {
+    /// The display a window is on: nil for the main display (the Dock's).
+    static func display(of window: AXUIElement) -> CGDirectDisplayID? {
+        guard let frame = AX.frame(window), let screen = Geometry.screen(containing: frame), screen != NSScreen.screens.first else { return nil }
+        return screen.displayID
+    }
+
+    private func setSuppressed(_ value: Bool, on display: CGDirectDisplayID? = nil) {
+        let display = value ? display : nil
         let changed = lock.withLock { () -> Bool in
-            guard suppressed != value else { return false }
+            guard suppressed != value || suppressedDisplay != display else { return false }
             suppressed = value
+            suppressedDisplay = display
             return true
         }
         guard changed else { return }
-        if value {
+        // The Dock is on the main display: it auto-hides only for a full-screen window there.
+        let dockOut = value && display == nil
+        if dockOut, dockWasAutoHidden == nil {
             dockWasAutoHidden = Self.dockGet?() ?? false
             if dockWasAutoHidden == false { Self.dockSet?(true) }
-        } else if dockWasAutoHidden == false {
-            Self.dockSet?(false)
+        } else if !dockOut, dockWasAutoHidden != nil {
+            if dockWasAutoHidden == false { Self.dockSet?(false) }
             dockWasAutoHidden = nil
         }
-        DispatchQueue.main.async { [weak self] in self?.onTaskbarSuppressed?(value) }
+        DispatchQueue.main.async { [weak self] in self?.onTaskbarSuppressed?(value, display) }
     }
 }

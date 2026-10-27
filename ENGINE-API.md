@@ -164,6 +164,8 @@ Windows 11's behaviour (the plan's table is in pane Pro's research notes; tests 
   - Start opens on the bar it was clicked on (`startedFrom`); the Win key opens it on the main display. The calendar
     and the group pop-up open on their bar's display. Alt+Tab is on the main display.
   - A bar's own Space decides whether it hides for a full-screen app (`PrivateAPI.currentSpaceKind(displayID:)`).
+  - pane's full screen (⌃⌘F) hides only the bar on its window's display: `FullScreenService.onTaskbarSuppressed`
+    gives the display (nil: the main one, where the Dock auto-hides too).
 - **Work areas:** `Geometry.workArea(of: screen)` is the display minus its menu bar, the Dock and pane's bar there.
   macOS reserves space only under the Dock; `Geometry.setTaskbarReserves(_:)` tells the geometry where pane's other
   bars are.

@@ -573,11 +573,14 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         }
 
         // Windows full screen (⌃⌘F). Converting macOS full screen back to the desktop is Pro's (an extension).
-        fullScreen.onTaskbarSuppressed = { [weak self] hidden in
+        fullScreen.onTaskbarSuppressed = { [weak self] hidden, display in
             MainActor.assumeIsolated {
-                self?.taskbar.suppressed = hidden
-                // Windows-style full screen auto-hides the Dock; it must not slide up at the bottom edge either.
-                self?.dockShield?.setFullScreen(hidden)
+                guard let self else { return }
+                // Only the bar on the full-screen window's display goes.
+                for bar in self.taskbars?.all ?? [self.taskbar] { bar.suppressed = hidden && bar.displayID == display }
+                // Windows-style full screen auto-hides the Dock (main display only); it must not slide up at the
+                // bottom edge either.
+                self.dockShield?.setFullScreen(hidden && display == nil)
             }
         }
 

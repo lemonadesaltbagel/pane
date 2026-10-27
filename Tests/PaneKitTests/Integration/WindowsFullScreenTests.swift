@@ -27,7 +27,7 @@ extension IntegrationTests {
             func dockIsBack() -> Bool { abs(DockReservation.bottomInset() - dockBefore) <= 8 }
             let bar = await MainActor.run { TaskbarPanel(inventory: WindowInventory(), height: 48) }
             let service = FullScreenService()
-            service.onTaskbarSuppressed = { hidden in MainActor.assumeIsolated { bar.suppressed = hidden } }
+            service.onTaskbarSuppressed = { hidden, _ in MainActor.assumeIsolated { bar.suppressed = hidden } }
             await MainActor.run { bar.show() }
             defer { service.shutdown(); Task { @MainActor in bar.close() } }
             let barWID = CGWindowID(await MainActor.run { bar.panel.windowNumber })

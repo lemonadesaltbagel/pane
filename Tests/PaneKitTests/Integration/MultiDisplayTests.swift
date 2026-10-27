@@ -203,5 +203,45 @@ extension IntegrationTests {
             print("MULTI-DISPLAY-DOCK: " + note)
             #expect(after == before && secondInset == 0)
         }
+
+        /// pane's full screen (⌃⌘F) on the second display: only that display's bar goes, the main bar and the Dock stay;
+        /// the window fills that display below its menu bar; ⌃⌘F again puts both back.
+        @Test func fullScreenHidesOnlyItsDisplaysBar() async throws {
+            let f = try await Fixture.launch(label: "F", windows: ["A"], frame: CGRect(x: 200, y: 200, width: 600, height: 400))
+            defer { f.quit() }
+            let pane = try Self.launchAgent()
+            defer { stopAgent(pane) }
+            await Self.agentReady()
+            let pid = pane.processIdentifier
+            let mainInset = DockReservation.bottomInset()
+            var note = ""
+            try await SecondDisplay.with { second in
+                let id = try #require(Self.secondDisplayID())
+                _ = await eventually(timeout: 5) { Self.bar(pid, on: id) != nil }
+                func barShown(on screen: CGRect) -> Bool {
+                    WindowServer.windows().contains { $0.pid == pid && $0.isOnScreen && $0.bounds.height == 48 && abs($0.bounds.maxY - screen.maxY) < 2 && abs($0.bounds.minX - screen.minX) < 2 }
+                }
+                let main = Geometry.screenFramesAX[0]
+                let window = try f.requireWindow("A")
+                AX.setFrame(window, CGRect(x: second.minX + 200, y: second.minY + 200, width: 600, height: 400))
+                Focus.focus(window, using: .skyLight)
+                _ = await eventually { AX.frontmostPID() == f.pid }
+                await settle(0.5)
+                let screen = try #require(NSScreen.screens.first { $0.displayID == id })
+                let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
+                let full = CGRect(x: second.minX, y: second.minY + menuBar, width: second.width, height: second.height - menuBar)
+                SyntheticKeyboard.press(kVK_ANSI_F, [.maskControl, .maskCommand])
+                let filled = await eventually(timeout: 3) { AX.frame(window).map { Geometry.approximatelyEqual($0, full) } ?? false }
+                let secondGone = await eventually(timeout: 2) { !barShown(on: second) }
+                let mainStays = barShown(on: main) && DockReservation.bottomInset() == mainInset
+                SyntheticKeyboard.press(kVK_ANSI_F, [.maskControl, .maskCommand])
+                let restored = await eventually(timeout: 3) { AX.frame(window).map { $0.width == 600 && $0.height == 400 } ?? false }
+                let secondBack = await eventually(timeout: 2) { barShown(on: second) }
+                note = "full screen on the second display: filled it \(filled) (\(Self.describe(AX.frame(window)))), its bar hidden \(secondGone), the main bar and Dock stay \(mainStays); ⌃⌘F again: restored \(restored), its bar back \(secondBack)"
+                #expect(filled && secondGone && mainStays && restored && secondBack)
+            }
+            Report.record("Multiple displays · full screen", note)
+            print("MULTI-DISPLAY-FS: " + note)
+        }
     }
 }
