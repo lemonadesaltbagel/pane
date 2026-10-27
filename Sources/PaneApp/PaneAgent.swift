@@ -271,6 +271,12 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         host.isPro = { [weak self] in self?.isPro ?? false }
         host.editionChanged = { [weak self] edition, summary, page in self?.editionChanged(edition, summary: summary, reopenSettings: page) ?? false }
         host.menuBarMenu = { [weak self] in self?.iconMenu.makeMenu() ?? NSMenu() }
+        host.systemChange = { [weak self] changes, on in
+            guard let self, !self.args.dryRun else { return }
+            if on {
+                do { try self.settings.apply(changes) } catch { log("system settings: \(error)") }
+            } else { self.settings.restore(changes) }
+        }
         for e in extensions { e.launch(host) }
         if !editionReported { log("edition: Free") }
         config.leaveAlone(host.leftAlone)

@@ -54,6 +54,28 @@ struct SystemSettingsTests {
         #expect(SystemSettings.read(domain, "size") as? Int == 68)
     }
 
+    @Test func restoringSomeKeysKeepsTheOthersAndTheirBackup() throws {
+        // A live setting turned off (an extension's change), while pane's own changes stay.
+        let (settings, url) = make()
+        defer { try? FileManager.default.removeItem(at: url); set("kept", nil); set("live", nil) }
+        set("kept", 68)
+        set("live", true)
+        try settings.apply([.init(domain, "kept", .int(28)), .init(domain, "live", .bool(false))])
+        settings.restore([.init(domain, "live", .bool(false))])
+        #expect(SystemSettings.read(domain, "live") as? Bool == true)
+        #expect(SystemSettings.read(domain, "kept") as? Int == 28)
+        #expect(settings.hasPendingBackup)
+        // Turned on again: backed up afresh; the full restore still puts everything back.
+        try settings.apply([.init(domain, "live", .bool(false))])
+        #expect(settings.restore())
+        #expect(SystemSettings.read(domain, "kept") as? Int == 68)
+        #expect(SystemSettings.read(domain, "live") as? Bool == true)
+        // The last key restored removes the backup.
+        try settings.apply([.init(domain, "live", .bool(false))])
+        settings.restore([.init(domain, "live", .bool(false))])
+        #expect(!settings.hasPendingBackup)
+    }
+
     @Test func restartHandlerRunsOncePerDomain() throws {
         let (settings, url) = make()
         defer { try? FileManager.default.removeItem(at: url); set("a", nil); set("b", nil) }

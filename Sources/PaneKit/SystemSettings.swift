@@ -88,6 +88,18 @@ public final class SystemSettings {
         return true
     }
 
+    /// Puts back only these keys (a live setting turned off); the other changes stay, and so does their backup.
+    public func restore(_ changes: [Change]) {
+        guard var backup = loadBackup() else { return }
+        let entries = changes.compactMap { change -> (String, String, Any?)? in
+            guard let entry = backup.removeValue(forKey: "\(change.domain)\u{1F}\(change.key)") else { return nil }
+            return (change.domain, change.key, (entry["existed"] as? Bool ?? false) ? entry["value"] : nil)
+        }
+        guard !entries.isEmpty else { return }
+        write(entries)
+        if backup.isEmpty { try? FileManager.default.removeItem(at: backupURL) } else { try? saveBackup(backup) }
+    }
+
     private func write(_ entries: [(String, String, Any?)]) {
         var domains = Set<String>()
         for (domain, key, value) in entries {

@@ -130,6 +130,12 @@ public final class PaneHost {
     /// An extension's chevron in the menu bar stands in for pane's own icon (`general.showMenuBarIcon`).
     public var menuBarChevron = false
     public let log: (String) -> Void
+    /// A macOS setting an extension changes while pane runs: saved first and put back when pane quits, or at the next
+    /// start after a crash, as pane's own are. Nothing changes in a dry run.
+    public func changeSystem(_ changes: [SystemSettings.Change]) { systemChange(changes, true) }
+    /// Puts these back now (the setting that needed them was turned off).
+    public func restoreSystem(_ changes: [SystemSettings.Change]) { systemChange(changes, false) }
+    var systemChange: ([SystemSettings.Change], Bool) -> Void = { _, _ in }
 
     init(prefs: SettingsStore, inventory: WindowInventory, taskbar: TaskbarPanel?, fullScreen: FullScreenService, snap: SnapService,
          history: FocusHistory, scope: Set<String>?, desktops: DesktopMembership, log: @escaping (String) -> Void) {
