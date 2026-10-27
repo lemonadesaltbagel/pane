@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 lemonadesaltbagel
+#
+# Build, the Free-build check and the unit tests. The integration tests need Accessibility and take over the screen,
+# so they run on a developer's Mac only (TESTING.md).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # Liquid Glass (NSGlassEffectView) needs the macOS 26 SDK.
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcode-select -p
+          swift --version
+      - name: Build
+        run: swift build
+      - name: Free build has none of the official build
+        run: scripts/check-free-build.sh
+      - name: Unit tests
+        run: scripts/test.sh --unit
