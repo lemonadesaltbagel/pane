@@ -17,6 +17,8 @@ public final class MenuBarIcon: NSObject {
     public var isPro: () -> Bool = { true }
     public var onBuy: (() -> Void)?
     public var buyTitle = "Buy…"
+    /// A newer release (`UpdateCheck`): "Update available" opens its page.
+    public var update: UpdateCheck.Release?
 
     public func install() {
         guard item == nil else { return }
@@ -50,20 +52,27 @@ public final class MenuBarIcon: NSObject {
         let quit = NSMenuItem(title: "Quit pane", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         let buy = NSMenuItem(title: buyTitle, action: #selector(buyChosen), keyEquivalent: "")
         buy.identifier = NSUserInterfaceItemIdentifier("buy")
-        for i in [settings, pause, buy] { i.target = self }
-        menu.items = [settings, pause, buy, .separator(), quit]
+        let update = NSMenuItem(title: "Update available…", action: #selector(updateChosen), keyEquivalent: "")
+        update.identifier = NSUserInterfaceItemIdentifier("update")
+        for i in [settings, pause, buy, update] { i.target = self }
+        menu.items = [settings, pause, buy, update, .separator(), quit]
         return menu
     }
 
     @objc private func settingsChosen() { onSettings?() }
     @objc private func pauseChosen() { onTogglePause?() }
     @objc private func buyChosen() { onBuy?() }
+    @objc private func updateChosen() { if let page = update?.page { NSWorkspace.shared.open(page) } }
 }
 
 extension MenuBarIcon: NSMenuDelegate {
     public func menuNeedsUpdate(_ menu: NSMenu) {
         menu.items.first { $0.identifier?.rawValue == "pause" }?.state = isPaused() ? .on : .off
         menu.items.first { $0.identifier?.rawValue == "buy" }?.isHidden = isPro() || onBuy == nil
+        if let item = menu.items.first(where: { $0.identifier?.rawValue == "update" }) {
+            item.isHidden = update == nil
+            item.title = update.map { "Update available: pane \($0.version)…" } ?? "Update available…"
+        }
     }
 }
 

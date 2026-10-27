@@ -460,7 +460,8 @@ public enum PaneSettings {
     public static let onboardingDone = Setting("general.onboardingDone", 0, .general, "Welcome finished (version)", status: .live, advanced: true)
     public static let paused = Setting("general.paused", false, .general, "Pause pane",
         help: "pane's shortcuts, snapping, click-through and quit-on-last-window stand down until resumed; the taskbar stays.", status: .live)
-    public static let checkForUpdates = Setting("general.checkForUpdates", true, .general, "Check for updates automatically", status: .planned)
+    public static let checkForUpdates = Setting("general.checkForUpdates", true, .general, "Check for updates automatically",
+        help: "Once a day, asks GitHub whether a newer release is out; pane's menu then links to it. Nothing is downloaded.", status: .live)
     public static let quitOnLastWindow = Setting("lifecycle.quitOnLastWindow", true, .general, "Quit apps when their last window closes",
         help: "Windows behaviour. Turn it off for an app to keep it running with no windows.", perApp: true, legacy: "quitOnLastWindow")
     // Start (Windows: Personalization ▸ Start)

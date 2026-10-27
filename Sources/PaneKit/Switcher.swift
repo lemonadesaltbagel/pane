@@ -110,6 +110,10 @@ public final class SwitcherController {
         case kVK_Tab where held:
             if active { step(flags.contains(.maskShift) ? -1 : 1) } else { begin(reverse: flags.contains(.maskShift)) }
             return true
+        case kVK_Tab where !active && flags.contains(options.modifier):
+            // Diagnostics: an Alt+Tab that did nothing (another modifier held too).
+            PaneLog.write("switcher: Tab with other modifiers held (flags \(flags.rawValue)), not Alt+Tab")
+            return false
         case kVK_Escape where active:
             cancel()
             return true
@@ -135,7 +139,7 @@ public final class SwitcherController {
             (options.allSpaces || $0.isOnVisibleSpace || $0.isMinimized || onFullScreenSpace($0)) && (windowFilter?($0) ?? true)
         }
         let ordered = history.sorted(windows)
-        guard !ordered.isEmpty else { return }
+        guard !ordered.isEmpty else { PaneLog.write("switcher: no windows to show (\(inventory.windows.count) in the list)"); return }
         let start = ordered.count > 1 ? (reverse ? ordered.count - 1 : 1) : 0
         lock.withLock {
             items = ordered

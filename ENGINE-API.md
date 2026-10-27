@@ -332,6 +332,12 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
   - `SystemChanges.restoreAll(store)` is *Restore now*.
 - **pane's menu-bar icon:** `MenuBarIcon` (*pane Settings…*, *Pause pane*, *Quit pane*), setting
   `general.showMenuBarIcon` (live). `onBuy` and `buyTitle` add an extension's purchase item (`PaneHost.purchase`).
+  `update` (an `UpdateCheck.Release`) adds *Update available: pane X…*, which opens the release page.
+- **Update check:** `UpdateCheck` (setting `general.checkForUpdates`, live). It reads `UpdateCheck.feed`, GitHub's
+  latest release of the public repository, 30 s after launch and then daily, and compares it with the bundle's
+  version (`isNewer(_:than:)`: 1.10 > 1.9, 1.2 = 1.2.0). Drafts and pre-releases don't count. It never runs in a
+  development build (no version), a test agent or a dry run, and it downloads nothing. An extension published
+  elsewhere sets its own feed, or nil.
 
 ## Onboarding
 
@@ -378,6 +384,10 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
 - **Apps:** `isHidden`, `leftAlone`.
 - **Editions:** `isPro`, `setEdition(isPro:locks:lockingOverrides:summary:reopenSettings:)`.
 - **Agent actions:** `openSettings`, `toggleShowDesktop`, `menuBarMenu`, `menuBarChevron`, `log`.
+- **macOS settings:** `changeSystem(_:)` changes one while pane runs, saved first and put back when pane quits or at
+  the next start after a crash, like pane's own. `restoreSystem(_:)` puts it back now (its setting was turned off).
+  Nothing changes in a dry run. `NativeTakeover.zoomButtonMenu` is macOS 26's green-button menu, for snap layouts
+  that take its place.
 - **Tests:** `scope`.
 
 **Engine slots extensions fill:**

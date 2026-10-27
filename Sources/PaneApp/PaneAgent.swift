@@ -166,6 +166,8 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
     var preview: SnapPreviewOverlay!
     var signalSources: [DispatchSourceSignal] = []
     var restored = false
+    var updateChecks: Task<Void, Never>?
+    var updateChecksOn: Bool?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // The edition first: Free's locks must be in place before anything reads the settings.
@@ -734,6 +736,12 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         }
         // Test agents never touch your login items (unless a test points them at its own folder).
         let testAgent = ProcessInfo.processInfo.environment["PANE_DEFAULTS_SUITE"] != nil
+        // Update checks: a release build only (a development build has no version), never a test agent or a dry run.
+        let checkUpdates = prefs[PaneSettings.checkForUpdates] && !testAgent && !args.dryRun
+        if checkUpdates != updateChecksOn {
+            updateChecksOn = checkUpdates
+            scheduleUpdateChecks(checkUpdates)
+        }
         if !testAgent || ProcessInfo.processInfo.environment["PANE_LAUNCH_AGENTS_DIR"] != nil {
             let want = prefs[PaneSettings.launchAtLogin]
             if want != LoginItem.isEnabled {
@@ -751,6 +759,26 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         taskbar.showDesktopCorner = prefs[PaneSettings.farCornerShowsDesktop]
         taskbar.hiddenBundles = live.hidden
         inventory.scheduleRefresh() // the window filters changed
+    }
+
+    /// `general.checkForUpdates`: 30 s after launch, then daily. A newer release shows in pane's menu.
+    func scheduleUpdateChecks(_ on: Bool) {
+        updateChecks?.cancel()
+        updateChecks = nil
+        guard on, let feed = UpdateCheck.feed, let current = UpdateCheck.currentVersion else {
+            if !on { iconMenu.update = nil }
+            return
+        }
+        updateChecks = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            while !Task.isCancelled {
+                if let release = await UpdateCheck.check(feed: feed, current: current), self?.iconMenu.update != release {
+                    log("update: pane \(release.version) is out (\(release.page.absoluteString))")
+                    self?.iconMenu.update = release
+                }
+                try? await Task.sleep(nanoseconds: 24 * 3600 * 1_000_000_000)
+            }
+        }
     }
 
     func updateMenuBarIcon() {
