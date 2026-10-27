@@ -7,8 +7,13 @@ import PackageDescription
 // With only the Command Line Tools installed (no Xcode), Swift Testing ships as a framework outside the
 // default search path, so the test target is pointed at it explicitly.
 let cltFrameworks = "/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
+// Only when the Command Line Tools are the active toolchain: Xcode's compiler (CI) has its own, and mixing them breaks
+// Swift Testing's macros.
+let activeDeveloperDir = ProcessInfo.processInfo.environment["DEVELOPER_DIR"]
+    ?? (try? FileManager.default.destinationOfSymbolicLink(atPath: "/var/db/xcode_select_link"))
+let usingCommandLineTools = activeDeveloperDir?.hasPrefix("/Library/Developer/CommandLineTools") ?? true
 let testingFlags: (swift: [SwiftSetting], linker: [LinkerSetting]) =
-    FileManager.default.fileExists(atPath: "\(cltFrameworks)/Testing.framework")
+    usingCommandLineTools && FileManager.default.fileExists(atPath: "\(cltFrameworks)/Testing.framework")
         ? ([.unsafeFlags(["-F", cltFrameworks])],
            [.unsafeFlags(["-F", cltFrameworks, "-Xlinker", "-rpath", "-Xlinker", cltFrameworks,
                           "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib"])])
