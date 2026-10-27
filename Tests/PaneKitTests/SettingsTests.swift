@@ -319,3 +319,35 @@ struct SettingsPagesTests {
         #expect(SettingsPages.page(containing: PaneSettings.takeOverTiling.id)?.id == "multitasking")
     }
 }
+
+@Suite("Calendar month")
+struct CalendarMonthTests {
+    static func utc(_ id: String) -> Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        c.locale = Locale(identifier: id)
+        return c
+    }
+    static let day = ISO8601DateFormatter().date(from: "2026-10-27T12:00:00Z")!
+
+    @Test func sixWeeksFromTheFirstWeekday() {
+        let us = CalendarMonth(containing: Self.day, today: Self.day, calendar: Self.utc("en_US"), locale: Locale(identifier: "en_US"))
+        #expect(us.title == "October 2026")
+        #expect(us.weekdays.first == "Sun" && us.weekdays.count == 7)
+        #expect(us.weeks.count == 6 && us.weeks.allSatisfy { $0.count == 7 })
+        #expect(us.weeks[0][0].id == "2026-09-27")                        // Oct 1 is a Thursday: the Sunday before
+        #expect(us.weeks.flatMap { $0 }.filter(\.inMonth).count == 31)
+        #expect(us.weeks.flatMap { $0 }.filter(\.isToday).map(\.id) == ["2026-10-27"])
+        var monday = Self.utc("en_GB"); monday.firstWeekday = 2
+        let gb = CalendarMonth(containing: Self.day, today: Self.day, calendar: monday, locale: Locale(identifier: "en_GB"))
+        #expect(gb.weekdays.first == "Mon" && gb.weeks[0][0].id == "2026-09-28")
+    }
+
+    @Test func monthsMoveAndTheHeaderNamesToday() {
+        let us = CalendarMonth(containing: Self.day, today: Self.day, calendar: Self.utc("en_US"), locale: Locale(identifier: "en_US"))
+        let next = us.moved(by: 1, today: Self.day, calendar: Self.utc("en_US"), locale: Locale(identifier: "en_US"))
+        #expect(next.title == "November 2026" && next.weeks.flatMap { $0 }.allSatisfy { !$0.isToday })
+        #expect(us.moved(by: -10, today: Self.day, calendar: Self.utc("en_US"), locale: Locale(identifier: "en_US")).title == "December 2025")
+        #expect(CalendarMonth.header(for: Self.day, calendar: Self.utc("en_US"), locale: Locale(identifier: "en_US")) == "Tuesday, October 27")
+    }
+}

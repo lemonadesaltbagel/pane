@@ -47,7 +47,17 @@ public final class TaskbarPanel {
     private var leftAligned: NSLayoutConstraint!
     private var centered: NSLayoutConstraint!
     private let stack = NSStackView()
-    private let clock = NSTextField(labelWithString: "")
+    private let clock = ClockLabel(labelWithString: "")
+    /// An app's recent files for its right-click list (Windows' jump list), from an extension. Nil: none.
+    public var jumpList: ((String) -> [JumpItem])?
+    public struct JumpItem {
+        public let title: String
+        public let open: () -> Void
+        public init(title: String, open: @escaping () -> Void) { self.title = title; self.open = open }
+    }
+
+    /// The clock's calendar (Windows 11): a click on the clock opens or closes it.
+    public let calendarPanel = CalendarFlyoutPanel()
     private var clockTimer: Timer?
     private let trayStack = NSStackView()
     private var trayTimer: Timer?
@@ -98,6 +108,7 @@ public final class TaskbarPanel {
         clock.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
         clock.textColor = .labelColor
         clock.maximumNumberOfLines = 2
+        clock.onClick = { [weak self] in self?.toggleCalendar() }
         trayStack.orientation = .horizontal
         trayStack.spacing = 2
         trayStack.translatesAutoresizingMaskIntoConstraints = false
@@ -532,7 +543,13 @@ public final class TaskbarPanel {
             hoverWork?.cancel()
             flyoutPanel.hide()
             guard let group = group(button.groupKey) else { return }
-            var entries: [(String, (() -> Void)?)] = [(group.appName, nil)]
+            var entries: [(String, (() -> Void)?)] = []
+            // Windows' jump list: the app's recent files first, from an extension (`jumpList`).
+            if let bundleID = group.bundleID ?? button.bundleID, let recent = jumpList?(bundleID), !recent.isEmpty {
+                entries.append(("Recent", nil))
+                entries += recent.prefix(10).map { item in (item.title, Optional(item.open)) }
+            }
+            entries.append((group.appName, nil))
             entries.append((group.windows.isEmpty ? "Open" : "New window", { [weak self] in self?.handle(.middle, view) }))
             if kind == .groupMenu || group.windows.count > 1 {
                 for (title, command) in [("Restore all windows", TaskbarActions.GroupCommand.restoreAll), ("Minimize all windows", .minimizeAll),
@@ -637,6 +654,28 @@ public final class TaskbarPanel {
         ChoicePanel.shared.show(entries, atAX: Geometry.cocoaToAX(CGRect(x: frame.minX, y: frame.maxY + 8 + CGFloat(entries.count) * 26, width: 1, height: 1), primaryHeight: Geometry.primaryHeight).origin)
     }
 
+    /// Opens or closes the calendar above the clock.
+    public func toggleCalendar() {
+        hoverWork?.cancel()
+        flyoutPanel.hide()
+        calendarPanel.anchorHit = { [weak self] event in
+            guard let self, event.window === self.panel else { return false }
+            return self.clock.convert(self.clock.bounds, to: nil).contains(event.locationInWindow)
+        }
+        calendarPanel.toggle(anchor: screenFrame(of: clock))
+    }
+
+    /// The clock: clickable (the calendar), its full date on hover.
+    final class ClockLabel: NSTextField {
+        var onClick: (() -> Void)?
+        override func mouseDown(with event: NSEvent) { onClick?() }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func accessibilityRole() -> NSAccessibility.Role? { .button }
+        override func accessibilityLabel() -> String? { "Clock" }
+        override func accessibilityIdentifier() -> String { "taskbar.clock" }
+        override func accessibilityPerformPress() -> Bool { onClick?(); return true }
+    }
+
     /// Time over date, in the user's locale (12/24-hour as set in macOS), like Windows' two-line clock.
     private var clockFormatter: (time: DateFormatter, date: DateFormatter)?
 
@@ -651,6 +690,7 @@ public final class TaskbarPanel {
         clockFormatter = formatters
         let now = Date()
         clock.stringValue = formatters.time.string(from: now) + "\n" + formatters.date.string(from: now)
+        clock.toolTip = DateFormatter.localizedString(from: now, dateStyle: .full, timeStyle: .none)
     }
 
     /// Ticks on the minute (no 15 s polling): one timer to the next minute boundary, then every 60 s.

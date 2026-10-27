@@ -92,6 +92,15 @@ For each part below:
 - **Hide when asked:** full screen and full-screen Spaces (see Full screen).
 - **The notification area** is an extension's (`TaskbarPanel.makeTray`, a `TaskbarTray`). Without one the taskbar has
   none.
+- **The clock and its calendar:**
+  - The clock (`taskbar.clock`, a button) shows time over date, with the full date as its tooltip.
+  - A click opens `CalendarFlyoutPanel` (Windows 11's calendar) above it, built from `CalendarMonth` (PaneKit): six
+    weeks from the region's first weekday, today marked, `moved(by:)` and `header(for:)`.
+  - Clicking the date goes back to today. A click elsewhere closes it, and so does the clock.
+  - Window `Pane Calendar`, with ids `calendar.header`, `calendar.title`, `calendar.previous` and `calendar.next`.
+    Each day is `calendar.day.<yyyy-MM-dd>`; today's label ends in ", today".
+- **Jump lists:** `TaskbarPanel.jumpList` (bundle id → `[JumpItem]`, from an extension) puts an app's recent files
+  first in its right-click list, under "Recent".
 
 ## Alt+Tab switcher
 
@@ -179,6 +188,9 @@ For each part below:
 - `onMenuKey` (⌥ tap);
 - `onFullScreenKey` (⌃⌘F);
 - `onShowDesktop`, `onFileExplorer`, `onSettings` (Win+I: ⌃⌘I);
+- `onScreenshot` (Win+Shift+S; no chord in the Mac keyboard, where macOS has ⌘⇧4/⌘⇧5). The agent calls
+  `Screenshot.perform()`: macOS's capture toolbar, a selection to the clipboard. `PANE_FAKE_SCREENSHOT` logs instead,
+  and a test agent never opens it;
 - `onTaskbarIndex(n)` (⌘1…9 when `winNumbers`).
 
 **Defaults are the Mac chords,** which macOS doesn't use. Snap is on ⌃⌥←/→/↑/↓ (as in Rectangle and Magnet).

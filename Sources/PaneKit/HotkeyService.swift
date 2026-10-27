@@ -56,6 +56,8 @@ public final class HotkeyService {
     /// Show desktop / open Finder (Windows mode's ⌘D / ⌘E), main queue.
     public var onShowDesktop: (() -> Void)?
     public var onFileExplorer: (() -> Void)?
+    /// Win+Shift+S (bound only when it has a chord: none in the Mac keyboard).
+    public var onScreenshot: (() -> Void)?
     public var onSettings: (() -> Void)?
     /// Extensions' shortcuts (pane Pro's Task View, desktops, Quick Link): bound at `start`, handled on the main queue.
     private var extra: [(Shortcut, () -> Void)] = []
@@ -116,6 +118,7 @@ public final class HotkeyService {
         // Bound only when the user (or the Windows keyboard preset) gave them a chord.
         bind(.showDesktop) { [weak self] in DispatchQueue.main.async { self?.onShowDesktop?() } }
         bind(.fileExplorer) { [weak self] in DispatchQueue.main.async { self?.onFileExplorer?() } }
+        bind(.screenshot) { [weak self] in DispatchQueue.main.async { self?.onScreenshot?() } }
         bind(.settings) { [weak self] in DispatchQueue.main.async { self?.onSettings?() } }
         for (shortcut, handler) in extra { bind(shortcut) { DispatchQueue.main.async(execute: handler) } }
         // Lone-modifier taps: which modifier opens Start / menu mode (settings `keys.start`, `keys.menuMode`).

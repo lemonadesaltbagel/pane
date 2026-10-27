@@ -571,6 +571,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         hotkeys.onShowDesktop = { [weak self] in self?.toggleShowDesktop() }
         hotkeys.onSettings = { [weak self] in self?.openSettings(page: nil) }
         hotkeys.onFileExplorer = { NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser) }
+        hotkeys.onScreenshot = { log("keys: screenshot"); _ = Screenshot.perform() }
         hotkeys.onFullScreenKey = { [weak self] in
             guard let pid = AX.frontmostPID(), let window = AX.focusedWindow(of: pid) else { return }
             DispatchQueue.global(qos: .userInitiated).async { self?.fullScreen.toggle(window) }

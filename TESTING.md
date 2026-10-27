@@ -46,6 +46,8 @@ helper itself.
   - Start: tap ⌘.
   - Menu mode: tap ⌥, then a letter.
   - Settings: ⌃⌘I.
+  - Screenshot to the clipboard (Win+Shift+S): no chord by default (macOS has ⌘⇧4/⌘⇧5); set one in Settings ▸
+    Keyboard.
 - **Everywhere:**
   - Alt+Tab is ⌥Tab, and Alt+F4 is ⌥F4.
   - ⌃⌘F is full screen on the current desktop.
@@ -79,6 +81,7 @@ Measured behavior (not just pass/fail) is written to `test-results/findings.md` 
   status-item names.
 - **Login items:** test agents never touch yours, unless a test points `PANE_LAUNCH_AGENTS_DIR` at its own folder.
 - **Power:** a test agent never sleeps, restarts or shuts down the Mac (`PANE_FAKE_POWER` logs the action instead).
+- **Screenshots:** a test agent never opens the capture tool (`PANE_FAKE_SCREENSHOT` logs instead).
 - **Welcome:** it shows in a test agent only with `PANE_ONBOARDING=1`.
 - **Permissions:** faked with `PANE_FAKE_PERMISSIONS_FILE` (`accessibility=missing`).
 - **Conflicting apps:** `PANE_EXTRA_CONFLICTS` makes the fixture count as a conflicting app.
@@ -121,7 +124,7 @@ id to switch Spaces when needed, so runs work from fullscreen Spaces too.
 | Windows full screen, Full-screen taskbar | Fill below the menu bar, taskbar/Dock out of the way while focused, exact restore; taskbar click into a macOS full-screen window |
 | Start menu | The panel, search, Recent, the bottom bar and power (faked), looks |
 | Settings window, Onboarding, Settings · honoured | Every page and control by id, live and restart settings, the welcome's steps |
-| E2E · pane agent | The real agent process: reservation, taskbar click, drag snap, quit-on-last-window, restore on exit |
+| E2E · pane agent | The real agent process: reservation, taskbar click, drag snap, quit-on-last-window, restore on exit, the clock's calendar |
 
 ### pane-probe
 

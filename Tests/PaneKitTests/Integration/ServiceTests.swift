@@ -100,6 +100,29 @@ extension IntegrationTests {
             #expect(commandLeftIgnored && snapped)
         }
 
+        /// Win+Shift+S: no chord in the Mac keyboard; a chord you set calls the screenshot handler (the real tool is
+        /// faked in tests).
+        @Test func screenshotShortcut() async throws {
+            #expect(HotkeyService.Options().binding(.screenshot) == nil)
+            let fake = FileManager.default.temporaryDirectory.appendingPathComponent("pane-test-screenshot-\(UUID().uuidString).txt")
+            setenv("PANE_FAKE_SCREENSHOT", fake.path, 1)
+            defer { unsetenv("PANE_FAKE_SCREENSHOT"); try? FileManager.default.removeItem(at: fake) }
+            let f = try await Fixture.launch(label: "Sc", windows: ["A"])
+            defer { f.quit() }
+            Focus.focus(try f.requireWindow("A"), using: .skyLight)
+            var options = HotkeyService.Options()
+            options.bindings[.screenshot] = KeyBinding([.ctrl, .cmd, .shift], "s")
+            let hotkeys = HotkeyService(options: options, snap: nil)
+            hotkeys.onScreenshot = { _ = Screenshot.perform() }
+            try hotkeys.start()
+            defer { hotkeys.stop(); SyntheticKeyboard.releaseAllModifiers() }
+            _ = await eventually { NSWorkspace.shared.frontmostApplication?.processIdentifier == f.pid }
+            SyntheticKeyboard.press(kVK_ANSI_S, [.maskControl, .maskCommand, .maskShift])
+            let taken = await eventually(timeout: 2) { ((try? String(contentsOf: fake, encoding: .utf8)) ?? "") == "screenshot\n" }
+            Report.record("M1 Services · Win+Shift+S", "handler called with a chord set \(taken)")
+            #expect(taken)
+        }
+
         @Test func lifecycleServiceQuitsOnLastCloseButRespectsOptOutAndHide() async throws {
             let inventory = WindowInventory()
             let service = LifecycleService()

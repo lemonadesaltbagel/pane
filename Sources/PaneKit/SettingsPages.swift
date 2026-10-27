@@ -60,6 +60,7 @@ public enum SettingsPages {
             .init("Start and menus", keys([.start, .menuMode, .settings])),
             .init("Windows and snap", keys([.closeWindow, .fullScreen, .snapLeft, .snapRight, .maximize, .minimizeOrRestore, .nextDisplay])),
             .init("Taskbar", keys(Shortcut.taskbarItems + [.showDesktop, .fileExplorer])),
+            .init("Tools", keys([.screenshot])),
             .init("Switching", keys([.switcher])),
         ]),
         SettingsPage(id: "apps", title: "App exceptions", symbol: "square.grid.2x2", category: "Apps", groups: []),

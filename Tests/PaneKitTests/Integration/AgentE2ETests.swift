@@ -81,6 +81,44 @@ extension IntegrationTests {
 
         /// Start and the pinned "Apps" button (user report: both did nothing). Start opens pane's Start (the default since
         /// the Start stage) and "Apps" macOS's Apps panel; a second click closes each.
+        /// T1: the clock opens Windows 11's calendar: today marked, ▼ the next month, the date back to today, and a click
+        /// elsewhere closes it.
+        @Test func clockOpensTheCalendar() async throws {
+            let f = try await Fixture.launch(label: "K", windows: ["A"], frame: CGRect(x: 160, y: 200, width: 380, height: 260))
+            defer { f.quit() }
+            let pane = try Self.launchAgent()
+            defer { stopAgent(pane) }
+            await Self.agentReady()
+            let pid = pane.processIdentifier
+            func calendar() -> AXUIElement? { AX.windows(of: pid).first { AX.title($0) == "Pane Calendar" } }
+            func find(_ id: String) -> AXUIElement? { calendar().flatMap { SettingsUI.element($0, id) } }
+            let bar = try #require(AX.windows(of: pid).first { AX.title($0) == "Pane Taskbar" })
+            let clock = try #require(SettingsUI.element(bar, "taskbar.clock"), "no clock button")
+            let tooltip = (AX.get(clock, kAXHelpAttribute) as String?) ?? ""
+            AX.perform(clock, kAXPressAction)
+            let opened = await eventually(timeout: 3) { calendar() != nil }
+            let todayID = { () -> String in
+                let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
+            }()
+            let today = await eventually(timeout: 2) { find("calendar.day.\(todayID)").flatMap { AX.get($0, kAXDescriptionAttribute) as String? }?.hasSuffix(", today") == true }
+            let title = find("calendar.title").flatMap { AX.get($0, kAXValueAttribute) as String? ?? AX.title($0) } ?? ""
+            // The look, for review (test-results/previews/taskbar-calendar.png; needs the capture helper).
+            if PreviewGate.enabled, let frame = calendar().flatMap(AX.frame),
+               let wid = WindowServer.windows().first(where: { $0.pid == pid && Geometry.approximatelyEqual($0.bounds, frame, tolerance: 4) })?.id,
+               let (image, _) = await PreviewClient.thumbnail(wid, maxDimension: 1000) { _ = PreviewGate.save(image, "taskbar-calendar") }
+            if let next = find("calendar.next") { AX.perform(next, kAXPressAction) }
+            let moved = await eventually(timeout: 2) { (find("calendar.title").flatMap { AX.get($0, kAXValueAttribute) as String? ?? AX.title($0) } ?? title) != title }
+            if let header = find("calendar.header") { AX.perform(header, kAXPressAction) }
+            let back = await eventually(timeout: 2) { find("calendar.day.\(todayID)") != nil }
+            // A click on the fixture's window closes it.
+            if let frame = f.window("A").flatMap(AX.frame) { SyntheticMouse.click(at: CGPoint(x: frame.midX, y: frame.midY)) }
+            let closed = await eventually(timeout: 3) { calendar() == nil }
+            let note = "clock tooltip “\(tooltip)”; opened \(opened); today marked \(today); ▼ changed the month \(moved) (from “\(title)”); date → today \(back); click elsewhere closed \(closed)"
+            Report.record("Taskbar · calendar", note)
+            print("CALENDAR: " + note)
+            #expect(!tooltip.isEmpty && opened && today && moved && back && closed)
+        }
+
         @Test func agentStartAndAppsButtons() async throws {
             let pane = Process()
             pane.executableURL = Self.binary

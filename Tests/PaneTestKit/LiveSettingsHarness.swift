@@ -83,8 +83,8 @@ public enum PreviewGate {
     }
 
     public static let directory: URL = {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
+        // The package being tested (scripts/test.sh runs from its root; this library may be a dependency's checkout).
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let dir = root.appendingPathComponent("test-results/previews")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir

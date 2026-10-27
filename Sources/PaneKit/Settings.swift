@@ -298,6 +298,8 @@ public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
     public static let switcher = Shortcut("switcher", "Switch windows", default: KeyBinding([.alt], "tab"), implemented: false)
     public static let showDesktop = Shortcut("showDesktop", "Show desktop")
     public static let fileExplorer = Shortcut("fileExplorer", "Open a Finder window")
+    /// No chord in the Mac keyboard: macOS has its own (⌘⇧4, ⌘⇧5).
+    public static let screenshot = Shortcut("screenshot", "Screenshot to the clipboard (Win+Shift+S)")
     public static let nextDisplay = Shortcut("nextDisplay", "Move window to next display", default: KeyBinding([.ctrl, .alt, .cmd], "right"),
                                              implemented: false)
     // Win+I (D5): ⌃⌘I here (⌘I is Italic / Get Info in Mac apps); the Windows keyboard uses ⌘I.
@@ -308,7 +310,7 @@ public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
                                                   taskbarItem6, taskbarItem7, taskbarItem8, taskbarItem9]
 
     static let engine: [Shortcut] = [start, menuMode, closeWindow, fullScreen, snapLeft, snapRight, maximize, minimizeOrRestore]
-        + taskbarItems + [switcher, showDesktop, fileExplorer, nextDisplay, settings]
+        + taskbarItems + [switcher, showDesktop, fileExplorer, nextDisplay, settings, screenshot]
     private static let lock = NSLock()
     nonisolated(unsafe) private static var registered: [Shortcut] = []
 
@@ -336,6 +338,7 @@ public enum ShortcutPresets {
         mac[.showDesktop] = .some(nil) // macOS has its own (F11)
         mac[.fileExplorer] = .some(nil)
         mac[.settings] = KeyBinding([.ctrl, .cmd], "i")
+        mac[.screenshot] = .some(nil) // macOS has its own (⌘⇧4, ⌘⇧5)
         return ["mac": mac]
     }()
 
@@ -565,6 +568,7 @@ public enum PaneSettings {
     ]
     nonisolated(unsafe) private static var words: [String: [String]] = [
         Shortcut.start.setting.id: ["win key", "start menu"], Shortcut.settings.setting.id: ["win+i"],
+        Shortcut.screenshot.setting.id: ["snipping tool", "screen capture", "win+shift+s"],
         alignment.id: ["center", "left"], combineButtons.id: ["group", "labels"], autoHide.id: ["hide taskbar"],
         replaceCommandTab.id: ["alt tab", "app switcher"], quitOnLastWindow.id: ["close", "quit"], launchAtLogin.id: ["startup", "login items"],
     ]
