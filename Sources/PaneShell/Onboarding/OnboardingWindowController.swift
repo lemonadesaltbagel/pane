@@ -64,7 +64,9 @@ public final class OnboardingModel: ObservableObject {
         ("Alt+Tab between windows", "square.grid.2x2"),
     ]
     /// The steps shown.
-    public var steps: [Step] { Step.allCases.filter { $0 != .keyboard || keyboardStep != nil } }
+    public var steps: [Step] { Step.allCases.filter { ($0 != .keyboard || keyboardStep != nil) && ($0 != .previews || previewsText != nil) } }
+    /// The previews step's text: shown only when an extension offers window thumbnails (they need Screen Recording).
+    public var previewsText: String?
     private var observation: SettingsObservation?
 
     public init(store: SettingsStore) {
@@ -108,7 +110,7 @@ public final class OnboardingModel: ObservableObject {
         Task { @MainActor in
             let started = await PreviewClient.launchHelper()
             previewsBusy = false
-            if !started { previewNote = "pane's preview helper isn't installed on this Mac. Alt+Tab and Task View show app icons instead." }
+            if !started { previewNote = "pane's preview helper isn't installed on this Mac. Window lists show app icons instead." }
             refresh()
         }
     }

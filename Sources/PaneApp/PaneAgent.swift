@@ -754,7 +754,8 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         }
         iconMenu.isPaused = { Pause.isOn }
         iconMenu.isPro = { [weak self] in self?.isPro ?? true }
-        iconMenu.onBuy = host?.buyPro
+        iconMenu.onBuy = host?.purchase?.action
+        iconMenu.buyTitle = host?.purchase?.title ?? "Buy…"
         let want = prefs[PaneSettings.showMenuBarIcon] && !(host?.menuBarChevron ?? false)
         if want, menuBarIcon == nil {
             iconMenu.install()

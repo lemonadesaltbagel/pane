@@ -37,6 +37,8 @@ public final class SettingsModel: ObservableObject {
     public var lockBadge = "Locked"
     public var lockPage: String?
     func isLocked(_ id: String) -> Bool { store.isLocked(id: id) }
+    /// An extension shows window thumbnails: Settings ▸ General lists the Screen Recording permission they need.
+    public var offersPreviews = false
     /// Rows an extension draws itself (setting id → view), e.g. pane Pro's keyboard choice.
     public var customRows: [String: () -> AnyView] = [:]
     /// Keyboard ▸ the buttons that put a set of shortcuts back (pane Pro adds the Windows keyboard's).

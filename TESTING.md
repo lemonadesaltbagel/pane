@@ -14,7 +14,7 @@ swift build
 ```
 
 **First run:**
-- **Steps:** a welcome, then Accessibility, window previews, other apps, what pane changes, and start at login.
+- **Steps:** a welcome, then Accessibility, other apps, what pane changes, and start at login.
 - **Without Accessibility,** pane stays up and starts by itself when it's granted.
 - **To see the welcome again:** Settings ▸ Advanced ▸ *Show welcome again*.
 
@@ -42,6 +42,7 @@ helper itself.
 
 **Keyboard:**
 - **Mac shortcuts:** pane keeps every macOS shortcut.
+  - Snap: ⌃⌥←/→ halves, ⌃⌥↑ maximize, ⌃⌥↓ restore or minimize.
   - Start: tap ⌘.
   - Menu mode: tap ⌥, then a letter.
   - Settings: ⌃⌘I.

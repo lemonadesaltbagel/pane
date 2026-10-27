@@ -150,5 +150,106 @@ extension IntegrationTests {
             print("START-U7: " + note)
             #expect(unlabeled.isEmpty && growthMB < 15)
         }
+
+        static func menuItem(_ pid: pid_t, _ title: String) -> AXUIElement? {
+            for w in AX.windows(of: pid) + [AX.app(pid)] {
+                func walk(_ e: AXUIElement, _ d: Int) -> AXUIElement? {
+                    if AX.role(e) == kAXMenuItemRole, AX.title(e) == title { return e }
+                    guard d < 12 else { return nil }
+                    for c in (AX.get(e, kAXChildrenAttribute) as [AXUIElement]?) ?? [] { if let r = walk(c, d + 1) { return r } }
+                    return nil
+                }
+                if let r = walk(w, 0) { return r }
+            }
+            return nil
+        }
+
+        static func storedPins() -> [PinnedItem] {
+            let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+            return ((try? Data(contentsOf: startFile)).flatMap { try? decoder.decode(StartData.self, from: $0) })?.pinned ?? []
+        }
+
+        /// U2: Pinned shows the Start file's pins; right-click ▸ Move to front and Unpin from Start write the file; a
+        /// tile launches its app. Dropping a pin onto another reorders it: folders are an extension's.
+        @Test func pinned() async throws {
+            let fixture = FixtureBundle.bundleID
+            let (f, pane) = try await Self.launch(pins: [.app("com.apple.calculator"), .app(fixture), .app("com.apple.Notes"), .app("com.apple.TextEdit")])
+            defer { stopAgent(pane); f.quit() }
+            let pid = pane.processIdentifier
+            _ = await Self.open(pid)
+            let tiles = ["com.apple.calculator", fixture, "com.apple.Notes", "com.apple.TextEdit"].map { Self.find(pid, "start.pinned.\($0)") != nil }
+            func contextMenu(_ id: String, _ title: String) async -> Bool {
+                guard let tile = Self.find(pid, id) else { return false }
+                AX.perform(tile, "AXShowMenu")
+                guard await eventually(timeout: 2, { Self.menuItem(pid, title) != nil }), let item = Self.menuItem(pid, title) else { return false }
+                return AX.perform(item, kAXPressAction) == .success
+            }
+            let moved = await contextMenu("start.pinned.com.apple.Notes", "Move to front")
+            let frontWritten = await eventually(timeout: 2) { Self.storedPins().first == .app("com.apple.Notes") }
+            let unpinned = await contextMenu("start.pinned.com.apple.TextEdit", "Unpin from Start")
+            let unpinWritten = await eventually(timeout: 2) { !Self.storedPins().contains(.app("com.apple.TextEdit")) }
+            // Drop Calculator's tile onto the middle of Notes' tile: no folder without the extension.
+            var noFolder = false
+            if let from = Self.find(pid, "start.pinned.com.apple.calculator").flatMap(AX.frame), let to = Self.find(pid, "start.pinned.com.apple.Notes").flatMap(AX.frame) {
+                SyntheticMouse.drag(from: CGPoint(x: from.midX, y: from.midY), to: CGPoint(x: to.midX, y: to.midY))
+                await settle(1)
+                noFolder = !Self.storedPins().contains { if case .folder = $0 { return true }; return false } && Self.find(pid, "start.folder.0") == nil
+            }
+            _ = AgentLink.send("start:hide"); _ = await Self.open(pid)
+            if let tile = Self.find(pid, "start.pinned.\(fixture)") { AX.perform(tile, kAXPressAction) }
+            let launched = await eventually(timeout: 3) { Self.log().contains("start: opened app:\(fixture)") }
+            let closedAfter = await eventually(timeout: 2) { !Self.shown(pid) }
+            let note = "tiles shown \(tiles); Move to front \(moved) → written \(frontWritten); Unpin \(unpinned) → written \(unpinWritten); drop onto another → no folder \(noFolder); tile launches the app \(launched), Start closes \(closedAfter)"
+            Report.record("Start · pinned", note)
+            print("START-U2: " + note)
+            #expect(tiles.allSatisfy { $0 } && moved && frontWritten && unpinned && unpinWritten && noFolder && launched && closedAfter)
+        }
+
+        /// U4: All in the engine's views: Grid (the default), and List with letter headers and the jump grid. No
+        /// Category view without the extension.
+        @Test func allViews() async throws {
+            let (f, pane) = try await Self.launch()
+            defer { stopAgent(pane); f.quit() }
+            let pid = pane.processIdentifier
+            _ = await Self.open(pid)
+            let all = await eventually(timeout: 2) { Self.find(pid, "start.all") != nil }
+            // The engine's catalog offers Grid and List only (an extension may register more).
+            let noCategory = MainActor.assumeIsolatedOrSync {
+                if case .choice(let choices)? = PaneSettings.setting(id: PaneSettings.startAllView.id)?.info.kind { return choices.map(\.value) == ["grid", "list"] }
+                return false
+            }
+            var list = false
+            if let picker = Self.find(pid, "start.all.view") { list = await SettingsUI.choose(picker, "List") }
+            let letters = await eventually(timeout: 2) { Self.find(pid, "start.all.index.C") != nil }
+            if let header = Self.find(pid, "start.all.index.C") { AX.perform(header, kAXPressAction) }
+            let jump = await eventually(timeout: 2) { Self.find(pid, "start.jumpGrid") != nil }
+            if let t = Self.find(pid, "start.jump.T") { AX.perform(t, kAXPressAction) }
+            let jumped = await eventually(timeout: 2) { Self.find(pid, "start.jumpGrid") == nil }
+            let remembered = await eventually(timeout: 2) { SettingsUI.stored(PaneSettings.startAllView.id) as? String == "list" }
+            let note = "All shown \(all); no Category view \(noCategory); List chosen \(list) with letters \(letters); letter → jump grid \(jump), letter picked \(jumped); view remembered \(remembered)"
+            Report.record("Start · All views", note)
+            print("START-U4: " + note)
+            #expect(all && noCategory && list && letters && jump && jumped && remembered)
+        }
+
+        /// U6: the account button, the folders next to power, and the power menu (it reaches the fake). Quick Link is an
+        /// extension's: without it the agent doesn't know the message.
+        @Test func bottomBar() async throws {
+            let (f, pane) = try await Self.launch { try? $0.set(PaneSettings.startFolders, ["settings", "downloads"]) }
+            defer { stopAgent(pane); f.quit() }
+            let pid = pane.processIdentifier
+            _ = await Self.open(pid)
+            let account = Self.find(pid, "start.account") != nil
+            let places = Self.find(pid, "start.place.settings") != nil && Self.find(pid, "start.place.downloads") != nil && Self.find(pid, "start.place.finder") == nil
+            var restart = false
+            if let power = Self.find(pid, "start.power") { restart = await SettingsUI.choose(power, "Restart") }
+            let restartFaked = await eventually(timeout: 2) { Self.powerLog() == ["restart"] }
+            _ = AgentLink.send("quick-link")
+            let noQuickLink = await eventually(timeout: 2) { Self.log().contains("link: unknown message quick-link") }
+            let note = "account button \(account); folders as set \(places); power ▸ Restart \(restart) → fake \(restartFaked) (\(Self.powerLog())); no Quick Link \(noQuickLink)"
+            Report.record("Start · bottom bar", note)
+            print("START-U6: " + note)
+            #expect(account && places && restart && restartFaked && noQuickLink)
+        }
     }
 }

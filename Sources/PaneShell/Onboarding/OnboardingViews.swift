@@ -171,7 +171,7 @@ struct PreviewsStep: View {
 
     var body: some View {
         StepHeader(symbol: "rectangle.on.rectangle", title: "Window previews",
-                   text: "Optional. With Screen Recording, pane shows live thumbnails in Alt+Tab, Task View and when you hover the taskbar. Without it, those show app icons and titles.")
+                   text: model.previewsText ?? "")
         HStack(spacing: 14) {
             StatusLabel(ok: model.previews == .granted, okText: "On", missingText: model.previews == .skipped ? "Skipped" : "Off")
                 .accessibilityIdentifier("onboarding.previews.status")
@@ -284,7 +284,7 @@ struct LoginStep: View {
                                                          set: { try? model.store.set(PaneSettings.launchAtLogin, $0) }))
             .toggleStyle(.switch)
             .accessibilityIdentifier("onboarding.login")
-        Text("You're set. Open Settings any time with ⌃⌘I (⌘I with the Windows keyboard), from pane's menu-bar icon, or by starting pane again.")
+        Text("You're set. Open Settings any time with ⌃⌘I, from pane's menu-bar icon, or by starting pane again.")
             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             .padding(.top, 8)
     }

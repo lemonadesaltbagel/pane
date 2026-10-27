@@ -3,7 +3,7 @@
 
 import Foundation
 
-/// Tray diagnostics on stderr (`PANE_DEBUG_TRAY=1`), each line stamped with the local time to the millisecond so a
+/// Tray diagnostics on stderr (`PANE_DEBUG_TRAY=1`), each line stamped with the time (UTC, as `PaneLog`) to the millisecond so a
 /// run can be matched against what the user did.
 public enum TrayLog {
     /// On with PANE_DEBUG_TRAY, or the setting `advanced.debugLog` (which also writes `file`).
@@ -28,6 +28,8 @@ public enum TrayLog {
     public static func file(_ line: String) { lock.withLock { handle?.write(line.data(using: .utf8)!) } }
     nonisolated(unsafe) private static let formatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "UTC")
         f.dateFormat = "HH:mm:ss.SSS"
         return f
     }()

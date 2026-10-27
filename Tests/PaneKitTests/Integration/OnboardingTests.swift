@@ -57,9 +57,9 @@ extension IntegrationTests {
             _ = await eventually(timeout: 10) { Self.log().contains("running (pid") }
             let accessibility = await Self.advance(pid, to: "accessibility")
             let axGranted = Self.value(pid, "onboarding.accessibility.status") == "granted"
-            let previews = await Self.advance(pid, to: "previews")
-            let previewState = Self.value(pid, "onboarding.previews.status") ?? "-"
-            // The Free build has no keyboard step (the Windows keyboard is pane Pro's).
+            // Without an extension's thumbnails there's no previews step (Screen Recording isn't asked for), and no
+            // keyboard step.
+            let noPreviewsStep = !Self.onStep(pid, "previews")
             let conflicts = await Self.advance(pid, to: "conflicts")
             let changes = await Self.advance(pid, to: "changes")
             let promise = Self.find(pid, "onboarding.promise") != nil
@@ -78,12 +78,11 @@ extension IntegrationTests {
             _ = await S.open("advanced", pid)
             if let again = S.find(pid, "settings.showWelcome") { AX.perform(again, kAXPressAction) }
             let again = await eventually(timeout: 3) { Self.onStep(pid, "welcome") }
-            let note = "shown \(shown); steps: accessibility \(accessibility) (granted \(axGranted)), previews \(previews) (\(previewState)), conflicts \(conflicts), changes \(changes) (promise \(promise)), login \(login) (on \(loginOn), off \(loginOff)); finish: closed \(closed), version written \(done), no restart \(noRestart); Show welcome again \(again)"
+            let note = "shown \(shown); steps: accessibility \(accessibility) (granted \(axGranted)), no previews step \(noPreviewsStep), conflicts \(conflicts), changes \(changes) (promise \(promise)), login \(login) (on \(loginOn), off \(loginOff)); finish: closed \(closed), version written \(done), no restart \(noRestart); Show welcome again \(again)"
             Report.record("Onboarding · first run", note)
             print("ONBOARDING-O1: " + note)
-            #expect(shown && accessibility && axGranted && previews)
+            #expect(shown && accessibility && axGranted && noPreviewsStep)
             #expect(conflicts && changes && promise && login && loginOn && loginOff && closed && done && noRestart && again)
-            #expect(["granted", "missing"].contains(previewState))
         }
 
         /// O2: without Accessibility the step is current, Continue waits; a grant completes it within a second, no relaunch.
@@ -125,7 +124,7 @@ extension IntegrationTests {
             let pid = pane.processIdentifier
             _ = await eventually(timeout: 8) { Self.onStep(pid, "welcome") }
             _ = await eventually(timeout: 10) { Self.log().contains("running (pid") }
-            for step in ["accessibility", "previews"] { _ = await Self.advance(pid, to: step) }
+            for step in ["accessibility"] { _ = await Self.advance(pid, to: step) }
             let conflicts = await Self.advance(pid, to: "conflicts")
             let listed = await eventually(timeout: 3) { Self.find(pid, "onboarding.conflict.\(FixtureBundle.bundleID)") != nil }
             if let quit = Self.find(pid, "onboarding.conflict.\(FixtureBundle.bundleID).quit") { AX.perform(quit, kAXPressAction) }
@@ -175,7 +174,7 @@ extension IntegrationTests {
             _ = await eventually(timeout: 8) { Self.onStep(pid, "welcome") }
             _ = await eventually(timeout: 10) { Self.log().contains("running (pid") }
             var saved: [String] = []
-            let steps = ["welcome", "accessibility", "previews", "conflicts", "changes", "login"]
+            let steps = ["welcome", "accessibility", "conflicts", "changes", "login"]
             for (i, step) in steps.enumerated() {
                 if i > 0 { _ = await Self.advance(pid, to: step) }
                 await settle(0.6)

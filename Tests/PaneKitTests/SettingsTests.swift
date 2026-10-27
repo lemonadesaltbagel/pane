@@ -153,6 +153,41 @@ struct SettingsTests {
         #expect(!store.isDefault(Shortcut.fullScreen.setting))
     }
 
+    /// An extension re-registers an engine setting: more choices and its own default, honoured by typed reads and writes.
+    @Test func aRegisteredReplacementAddsChoicesAndADefault() throws {
+        let base = Setting("test.replaceableView", "grid", .start, "View", kind: .choice([.init("grid", "Grid"), .init("list", "List")]), status: .live)
+        PaneSettings.register([base.erased])
+        let store = SettingsStore(url: nil)
+        #expect(store[base] == "grid")
+        #expect(throws: SettingsError.self) { try store.set(base, "category") }
+        let replacement = Setting("test.replaceableView", "category", .start, "View",
+                                  kind: .choice([.init("category", "Category"), .init("grid", "Grid"), .init("list", "List")]), status: .live)
+        PaneSettings.register([replacement.erased])
+        #expect(store[base] == "category")                 // the replacement's default
+        try store.set(base, "grid")
+        #expect(!store.isDefault(base) && store[base] == "grid") // grid is no longer the default: stored
+        try store.set(base, "category")
+        #expect(store.isDefault(base))
+        #expect(PaneSettings.all.filter { $0.id == "test.replaceableView" }.count == 1)
+    }
+
+    @Test func macChordsAreTheDefaults() {
+        let options = HotkeyService.Options()
+        #expect(options.binding(.snapLeft) == KeyBinding([.ctrl, .alt], "left"))
+        #expect(options.binding(.minimizeOrRestore) == KeyBinding([.ctrl, .alt], "down"))
+        #expect(options.binding(.taskbarItem1) == nil)
+        var windows = HotkeyService.Options()
+        windows.winArrows = true; windows.winNumbers = true
+        #expect(windows.binding(.snapLeft) == KeyBinding([.cmd], "left") && windows.binding(.taskbarItem3) == KeyBinding([.cmd], "3"))
+        windows.bindings[.snapLeft] = KeyBinding([.ctrl, .cmd], "left")
+        #expect(windows.binding(.snapLeft) == KeyBinding([.ctrl, .cmd], "left")) // yours win
+        // Stored nowhere: the defaults themselves are the Mac preset.
+        let store = SettingsStore(url: nil)
+        #expect(store[Shortcut.snapRight.setting] == KeyBinding([.ctrl, .alt], "right"))
+        store.applyShortcutPreset("mac")
+        #expect(store.isDefault(Shortcut.snapRight.setting))
+    }
+
     @Test func conflictsAreFound() throws {
         let store = SettingsStore(url: nil)
         #expect(ShortcutConflicts.check(store, macOS: [:]).isEmpty) // the shipped defaults collide with nothing

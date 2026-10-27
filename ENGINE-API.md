@@ -181,6 +181,10 @@ For each part below:
 - `onShowDesktop`, `onFileExplorer`, `onSettings` (Win+I: ⌃⌘I);
 - `onTaskbarIndex(n)` (⌘1…9 when `winNumbers`).
 
+**Defaults are the Mac chords,** which macOS doesn't use. Snap is on ⌃⌥←/→/↑/↓ (as in Rectangle and Magnet).
+`Options.winArrows` and `winNumbers` switch snapping to ⌘ arrows and add ⌘1…9; chords you set win over both
+(`Options.binding(_:)`).
+
 Also:
 - ⌥F4 is handled inside.
 - **Extension shortcuts:** an extension binds its own with `bind(_:_:)` before `start()`. Only shortcuts someone
@@ -220,6 +224,9 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
 **Registering more (extensions, before a `SettingsStore` loads):**
 - `PaneSettings.register(_:dependsOn:keywords:builtInOverrides:legacyAppLists:)`. Afterwards `all`, `setting(id:)`,
   `dependsOn`, `keywords` and `builtInOverrides` include what was registered.
+- **Registering an engine setting's id again replaces it,** for example to add choices or change its default. The store
+  honours the replacement: typed reads use its default, and typed writes accept its choices (`start.allView` with an
+  extension's view).
 - `Shortcut` is a struct (`rawValue`, `title`, `defaultBinding`, `isImplemented`): `Shortcut.register`,
   `Shortcut.allCases`.
 - **Presets:** `ShortcutPresets.register(name, bindings)` and `bindings(name)`. The engine ships "mac": snap on ⌃⌥
@@ -263,7 +270,7 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
 - **Window:** `SettingsWindowController(model: SettingsModel(store:))` in PaneShell/Settings. The agent makes it on
   first use, in `openSettings(page:)`.
   - **Pages:** `SettingsPages.all` (PaneKit). The engine's are general, colors, start, taskbar, multitasking, keyboard,
-    apps, advanced and about.
+    apps, advanced and about (an extension adds its own, e.g. an edition's page).
   - A page with nothing to show is left out. `page("shortcuts")` and similar aliases work.
   - **Extensions add:** `SettingsPages.add(page:after:)`, `add(_:page:group:at:groupAfter:groupFirst:)` and
     `addExceptionColumns`.
@@ -278,7 +285,8 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
   - `backupSections` and `onImported` handle full backups.
   - `onShowWelcome` reopens onboarding.
   - **For extensions:** `pageSections` (a view after a page's settings), `customRows` (a row an extension draws),
-    `shortcutPresets` (Keyboard's restore buttons), `lockBadge` / `lockPage` (the badge on locked rows).
+    `shortcutPresets` (Keyboard's restore buttons), `lockBadge` / `lockPage` (the badge on locked rows),
+    `offersPreviews` (Settings ▸ General lists Screen Recording).
 - **Accessibility identifiers:**
   - each control: its setting id;
   - window and navigation: `pane.settings`, `settings.sidebar.<page>`, `settings.search`, `settings.advancedToggle`;
@@ -311,16 +319,17 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
   - `SystemChanges.promise` is the restore promise, word for word.
   - `SystemChanges.restoreAll(store)` is *Restore now*.
 - **pane's menu-bar icon:** `MenuBarIcon` (*pane Settings…*, *Pause pane*, *Quit pane*), setting
-  `general.showMenuBarIcon` (live). `onBuy` adds an extension's purchase item.
+  `general.showMenuBarIcon` (live). `onBuy` and `buyTitle` add an extension's purchase item (`PaneHost.purchase`).
 
 ## Onboarding
 
 - **Window:** `OnboardingWindowController(model: OnboardingModel(store:))` in PaneShell/Onboarding.
-  - Steps: welcome, accessibility, previews, conflicts, changes, login. There's also a keyboard step when an extension
-    supplies it (`keyboardStep`).
+  - Steps: welcome, accessibility, conflicts, changes, login.
+  - Two steps appear only when an extension supplies them: previews (`previewsText`, for an extension that shows window
+    thumbnails, which need Screen Recording) and keyboard (`keyboardStep`).
   - `model.onFinish` is the agent's hook. It writes the version, closes, and restarts when a launch-time setting
     changed.
-  - **For extensions:** `keyboardStep`, `welcomeNote`, `welcomeFeatures`.
+  - **For extensions:** `previewsText`, `keyboardStep`, `welcomeNote`, `welcomeFeatures`.
 - **When it shows:**
   - at launch while `Onboarding.isNeeded(store)` is true (setting `general.onboardingDone`; test agents need
     `PANE_ONBOARDING=1`);
@@ -351,10 +360,11 @@ Each `Shortcut` (Start, snap, taskbar 1…9, …) has a setting `keys.<action>` 
 **`PaneHost`:**
 - **Shared objects:** `prefs`, `inventory`, `taskbar`, `fullScreen`, `snap`, `history`, `hotkeys`, `switcherPanel`,
   `startMenu`.
+- **A purchase item in pane's menu:** `purchase` (title and action), shown while not Pro.
 - **Desktops:** `desktops` (`DesktopMembership`: `set(_:)`, `isOnCurrent(_:for:)`, `showEveryDesktop(_:_:)`) and
   `isOnCurrentDesktop(_:)`.
 - **Apps:** `isHidden`, `leftAlone`.
-- **Editions:** `isPro`, `setEdition(isPro:locks:lockingOverrides:summary:reopenSettings:)`, `buyPro`.
+- **Editions:** `isPro`, `setEdition(isPro:locks:lockingOverrides:summary:reopenSettings:)`.
 - **Agent actions:** `openSettings`, `toggleShowDesktop`, `menuBarMenu`, `menuBarChevron`, `log`.
 - **Tests:** `scope`.
 

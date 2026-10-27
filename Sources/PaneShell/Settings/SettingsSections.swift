@@ -32,21 +32,24 @@ struct PermissionsSection: View {
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.permission.accessibility")
             .accessibilityValue(accessibility.rawValue)
-            LabeledContent {
-                if previews == .granted {
-                    Label("On", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                } else {
-                    Text("Off: window lists show app icons").font(.caption).foregroundStyle(.secondary)
+            // Screen Recording only matters when an extension shows window thumbnails.
+            if model.offersPreviews {
+                LabeledContent {
+                    if previews == .granted {
+                        Label("On", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    } else {
+                        Text("Off: window lists show app icons").font(.caption).foregroundStyle(.secondary)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Window previews")
+                        Text("Optional: window thumbnails.").font(.caption).foregroundStyle(.secondary)
+                    }
                 }
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Window previews")
-                    Text("Optional: window thumbnails.").font(.caption).foregroundStyle(.secondary)
-                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("settings.permission.previews")
+                .accessibilityValue(previews.rawValue)
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("settings.permission.previews")
-            .accessibilityValue(previews.rawValue)
         }
     }
 }

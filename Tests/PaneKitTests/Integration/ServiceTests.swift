@@ -81,6 +81,25 @@ extension IntegrationTests {
             #expect(ok)
         }
 
+        /// The Mac chords are on by default: ⌃⌥← snaps left with no options set, and ⌘← stays text navigation.
+        @Test func hotkeyServiceMacChordsByDefault() async throws {
+            let f = try await Fixture.launch(label: "H", windows: ["A"])
+            defer { f.quit() }
+            let window = try f.requireWindow("A")
+            Focus.focus(window, using: .skyLight)
+            let start = try #require(AX.frame(window))
+            let work = try #require(Geometry.workArea(for: start))
+            let hotkeys = HotkeyService(options: HotkeyService.Options(), snap: SnapService())
+            try hotkeys.start()
+            defer { hotkeys.stop(); SyntheticKeyboard.releaseAllModifiers() }
+            SyntheticKeyboard.press(kVK_LeftArrow, .maskCommand)
+            let commandLeftIgnored = !(await eventually(timeout: 0.8) { AX.frame(window).map { Geometry.approximatelyEqual($0, Geometry.rect(for: .leftHalf, in: work)) } ?? false })
+            SyntheticKeyboard.press(kVK_LeftArrow, [.maskControl, .maskAlternate])
+            let snapped = await eventually { AX.frame(window).map { Geometry.approximatelyEqual($0, Geometry.rect(for: .leftHalf, in: work)) } ?? false }
+            Report.record("M1 Services · ⌃⌥← by default", "⌘← left alone \(commandLeftIgnored); ⌃⌥← left half \(snapped)")
+            #expect(commandLeftIgnored && snapped)
+        }
+
         @Test func lifecycleServiceQuitsOnLastCloseButRespectsOptOutAndHide() async throws {
             let inventory = WindowInventory()
             let service = LifecycleService()

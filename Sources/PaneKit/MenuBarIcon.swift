@@ -13,9 +13,10 @@ public final class MenuBarIcon: NSObject {
     public var onSettings: (() -> Void)?
     public var onTogglePause: (() -> Void)?
     public var isPaused: () -> Bool = { false }
-    /// Not Pro: the menu offers "Buy pane Pro…" (pane Pro's licensing sets `onBuy` when a purchase page is set).
+    /// An extension's purchase item (its title), shown while `isPro` is false.
     public var isPro: () -> Bool = { true }
     public var onBuy: (() -> Void)?
+    public var buyTitle = "Buy…"
 
     public func install() {
         guard item == nil else { return }
@@ -47,7 +48,7 @@ public final class MenuBarIcon: NSObject {
         let pause = NSMenuItem(title: "Pause pane", action: #selector(pauseChosen), keyEquivalent: "")
         pause.identifier = NSUserInterfaceItemIdentifier("pause")
         let quit = NSMenuItem(title: "Quit pane", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
-        let buy = NSMenuItem(title: "Buy pane Pro…", action: #selector(buyChosen), keyEquivalent: "")
+        let buy = NSMenuItem(title: buyTitle, action: #selector(buyChosen), keyEquivalent: "")
         buy.identifier = NSUserInterfaceItemIdentifier("buy")
         for i in [settings, pause, buy] { i.target = self }
         menu.items = [settings, pause, buy, .separator(), quit]

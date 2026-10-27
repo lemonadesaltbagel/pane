@@ -260,8 +260,9 @@ public struct KeyBinding: SettingValue, Hashable, CustomStringConvertible {
 public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
     public let rawValue: String
     public let title: String
-    /// The binding pane uses when nothing is stored. The ⌘ arrows and ⌘ digits are nil (off) until the ⌘ = Win chord
-    /// set is decided (a deferred decision); the keyboard presets (`ShortcutPresets`) offer complete sets.
+    /// The binding pane uses when nothing is stored: the Mac chords, which macOS doesn't use. Snap is on ⌃⌥ arrows (as
+    /// in Rectangle and Magnet); the ⌘ arrows and ⌘ digits come only with a keyboard that asks for them (`winArrows`,
+    /// `winNumbers`, or a preset in `ShortcutPresets`).
     public let defaultBinding: KeyBinding?
     /// Rebinding is honoured by HotkeyService (the rest are reserved: stored, shown greyed out).
     public let isImplemented: Bool
@@ -287,17 +288,18 @@ public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
     public static let menuMode = Shortcut("menuMode", "Menu mode (underlined letters)", default: .tap(.alt))
     public static let closeWindow = Shortcut("closeWindow", "Close window", default: KeyBinding([.alt], "f4"))
     public static let fullScreen = Shortcut("fullScreen", "Full screen", default: KeyBinding([.ctrl, .cmd], "f"))
-    public static let snapLeft = Shortcut("snapLeft", "Snap left")
-    public static let snapRight = Shortcut("snapRight", "Snap right")
-    public static let maximize = Shortcut("maximize", "Maximize")
-    public static let minimizeOrRestore = Shortcut("minimizeOrRestore", "Restore / minimize")
+    public static let snapLeft = Shortcut("snapLeft", "Snap left", default: KeyBinding([.ctrl, .alt], "left"))
+    public static let snapRight = Shortcut("snapRight", "Snap right", default: KeyBinding([.ctrl, .alt], "right"))
+    public static let maximize = Shortcut("maximize", "Maximize", default: KeyBinding([.ctrl, .alt], "up"))
+    public static let minimizeOrRestore = Shortcut("minimizeOrRestore", "Restore / minimize", default: KeyBinding([.ctrl, .alt], "down"))
     public static let taskbarItem1 = item(1), taskbarItem2 = item(2), taskbarItem3 = item(3), taskbarItem4 = item(4), taskbarItem5 = item(5),
                       taskbarItem6 = item(6), taskbarItem7 = item(7), taskbarItem8 = item(8), taskbarItem9 = item(9)
     /// The switcher works on ⌥Tab, but its key isn't rebindable yet.
     public static let switcher = Shortcut("switcher", "Switch windows", default: KeyBinding([.alt], "tab"), implemented: false)
     public static let showDesktop = Shortcut("showDesktop", "Show desktop")
     public static let fileExplorer = Shortcut("fileExplorer", "Open a Finder window")
-    public static let nextDisplay = Shortcut("nextDisplay", "Move window to next display", implemented: false)
+    public static let nextDisplay = Shortcut("nextDisplay", "Move window to next display", default: KeyBinding([.ctrl, .alt, .cmd], "right"),
+                                             implemented: false)
     // Win+I (D5): ⌃⌘I here (⌘I is Italic / Get Info in Mac apps); the Windows keyboard uses ⌘I.
     public static let settings = Shortcut("settings", "Open pane Settings", default: KeyBinding([.ctrl, .cmd], "i"))
 
@@ -450,7 +452,7 @@ public enum PaneSettings {
     // General
     public static let launchAtLogin = Setting("general.launchAtLogin", false, .general, "Start pane at login", status: .live)
     public static let showMenuBarIcon = Setting("general.showMenuBarIcon", true, .general, "Show pane's icon in the menu bar",
-        help: "Settings, Pause and Quit. Starting pane again also opens Settings. With the tray in the menu bar, its chevron is pane's icon (right-click it).", status: .live)
+        help: "Settings, Pause and Quit. Starting pane again also opens Settings.", status: .live)
     /// The onboarding version the user finished (0: never). Onboarding shows when it's below `Onboarding.version`.
     public static let onboardingDone = Setting("general.onboardingDone", 0, .general, "Welcome finished (version)", status: .live, advanced: true)
     public static let paused = Setting("general.paused", false, .general, "Pause pane",
@@ -471,8 +473,9 @@ public enum PaneSettings {
     public static let startRecentlyAdded = Setting("start.recentlyAdded", true, .start, "Show recently added apps", status: .live)
     public static let startMostUsed = Setting("start.mostUsed", true, .start, "Show most used apps", status: .live)
     public static let startShowAll = Setting("start.showAll", true, .start, "Show All", status: .live)
-    public static let startAllView = Setting("start.allView", "category", .start, "All apps view",
-        kind: .choice([.init("category", "Category"), .init("grid", "Grid"), .init("list", "List")]), status: .live)
+    /// An extension may add views (re-registering this with more choices and its own default).
+    public static let startAllView = Setting("start.allView", "grid", .start, "All apps view",
+        kind: .choice([.init("grid", "Grid"), .init("list", "List")]), status: .live)
     public static let startHideAccount = Setting("start.hideAccount", false, .start, "Hide your name and picture", status: .live)
     public static let startFolders = Setting<[String]>("start.folders", ["settings", "finder"], .start, "Folders next to the power button",
         kind: .multiChoice(StartPlace.allCases.map { .init($0.rawValue, $0.title) }), status: .live)
@@ -523,7 +526,7 @@ public enum PaneSettings {
 
 
     // Apps (exceptions): per-app rows of the perApp settings above
-    public static let hideFromTaskbar = Setting("apps.hideFromTaskbar", false, .apps, "Hide from the taskbar, Alt+Tab and Task View", status: .live, perApp: true)
+    public static let hideFromTaskbar = Setting("apps.hideFromTaskbar", false, .apps, "Hide from the taskbar and Alt+Tab", status: .live, perApp: true)
 
     // Advanced
     public static let debugLog = Setting("advanced.debugLog", false, .advanced, "Write a diagnostic log",
@@ -594,8 +597,9 @@ public enum PaneSettings {
                                 keywords: [String: [String]] = [:], builtInOverrides: [String: [String: JSONValue]] = [:],
                                 legacyAppLists: [String: (id: String, value: JSONValue)] = [:]) {
         registryLock.withLock {
-            for setting in settings where byID[setting.id] == nil {
-                catalog.append(setting)
+            for setting in settings {
+                // An engine setting registered again replaces it (an extension adds choices or changes its default).
+                if let i = catalog.firstIndex(where: { $0.id == setting.id }) { catalog[i] = setting } else { catalog.append(setting) }
                 byID[setting.id] = setting
             }
             depends.merge(dependsOn) { _, new in new }
@@ -667,7 +671,12 @@ public final class SettingsStore {
 
     public func value<V>(_ s: Setting<V>) -> V {
         if let locked = locks[s.id], let v = locked.decode(V.self) { return v }
-        return values[s.id].flatMap { $0.decode(V.self) } ?? s.defaultValue
+        return values[s.id].flatMap { $0.decode(V.self) } ?? defaultValue(s)
+    }
+
+    /// The default in effect: a registered replacement's (an extension's), else the setting's own.
+    private func defaultValue<V>(_ s: Setting<V>) -> V {
+        PaneSettings.setting(id: s.id)?.defaultJSON.decode(V.self) ?? s.defaultValue
     }
 
     /// The value for one app: its override if it has one (yours, then pane's built-in ones), else the global value.
@@ -719,8 +728,11 @@ public final class SettingsStore {
     // Writing
 
     public func set<V>(_ s: Setting<V>, _ newValue: V) throws {
-        guard Setting<V>.valid(newValue, s.info.kind), let json = JSONValue.from(newValue) else { throw SettingsError.invalid(id: s.id) }
-        let stored: JSONValue? = newValue == s.defaultValue ? nil : json
+        guard let json = JSONValue.from(newValue),
+              // Valid for the setting, or for a registered replacement (an extension's extra choices).
+              Setting<V>.valid(newValue, s.info.kind) || PaneSettings.setting(id: s.id)?.accepts(json) == true
+        else { throw SettingsError.invalid(id: s.id) }
+        let stored: JSONValue? = newValue == defaultValue(s) ? nil : json
         guard values[s.id] != stored else { return }
         values[s.id] = stored
         save()

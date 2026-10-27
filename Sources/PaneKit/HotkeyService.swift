@@ -6,15 +6,16 @@ import Carbon.HIToolbox
 
 /// Windows keyboard behaviors on top of `KeyTap`. ⌘ = Win, ⌥ = Alt.
 ///
-/// The ⌘ chords that collide with macOS text navigation and app shortcuts (⌘←/→/↑/↓, ⌘1…9) are behind
-/// their own switches, off by default: which ⌘ chords pane claims is a decision the user deferred.
+/// By default pane uses chords macOS doesn't (snap on ⌃⌥ arrows). The ⌘ chords that collide with macOS text navigation
+/// and app shortcuts (⌘←/→/↑/↓, ⌘1…9) are behind their own switches, off by default (a Windows-style keyboard turns
+/// them on).
 public final class HotkeyService {
     public struct Options {
         /// ⌥F4 → close the focused window (quitting the app is then up to LifecycleService).
         public var altF4 = true
-        /// ⌘←/→/↑/↓ → Windows snap transitions. Deferred decision: off by default.
+        /// ⌘←/→/↑/↓ snap instead of ⌃⌥ arrows. Off by default.
         public var winArrows = false
-        /// ⌘1…9 → taskbar item. Deferred decision: off by default.
+        /// ⌘1…9 → taskbar item. Off by default.
         public var winNumbers = false
         /// ⌘ tapped alone → Start.
         public var winTap = true
@@ -29,16 +30,17 @@ public final class HotkeyService {
         public var ignoredApps: Set<String> = []
         public init() {}
 
-        /// The chord in effect for an action (nil = off).
+        /// The chord in effect for an action (nil = off): yours, else ⌘ arrows / ⌘ digits when `winArrows` /
+        /// `winNumbers` ask for them, else the default (snap on ⌃⌥ arrows, no taskbar digits).
         public func binding(_ action: Shortcut) -> KeyBinding? {
             if let override = bindings[action] { return override }
             switch action {
-            case .snapLeft: return KeyBinding([.cmd], "left")
-            case .snapRight: return KeyBinding([.cmd], "right")
-            case .maximize: return KeyBinding([.cmd], "up")
-            case .minimizeOrRestore: return KeyBinding([.cmd], "down")
+            case .snapLeft where winArrows: return KeyBinding([.cmd], "left")
+            case .snapRight where winArrows: return KeyBinding([.cmd], "right")
+            case .maximize where winArrows: return KeyBinding([.cmd], "up")
+            case .minimizeOrRestore where winArrows: return KeyBinding([.cmd], "down")
             default:
-                if action.rawValue.hasPrefix("taskbarItem"), let d = action.rawValue.last { return KeyBinding([.cmd], String(d)) }
+                if winNumbers, action.rawValue.hasPrefix("taskbarItem"), let d = action.rawValue.last { return KeyBinding([.cmd], String(d)) }
                 return action.defaultBinding
             }
         }
@@ -102,16 +104,13 @@ public final class HotkeyService {
         if options.altF4 {
             bind(.closeWindow) { Self.closeFocusedWindow() }
         }
-        // Snap and taskbar-digit chords: the built-in ⌘ ones only behind their switches (deferred ⌘ = Win decision); a
-        // chord the user (or a keyboard preset) set is bound regardless.
+        // Snap and taskbar-digit chords (`Options.binding`): yours, else ⌘ ones behind their switches, else the defaults.
         if let snap {
             let arrows: [(Shortcut, SnapTransitions.Arrow)] = [(.snapLeft, .left), (.snapRight, .right), (.maximize, .up), (.minimizeOrRestore, .down)]
-            for (action, arrow) in arrows where options.winArrows || options.bindings[action] != nil {
-                bind(action) { snap.arrowOnFocusedWindow(arrow) }
-            }
+            for (action, arrow) in arrows { bind(action) { snap.arrowOnFocusedWindow(arrow) } }
         }
         let items: [Shortcut] = [.taskbarItem1, .taskbarItem2, .taskbarItem3, .taskbarItem4, .taskbarItem5, .taskbarItem6, .taskbarItem7, .taskbarItem8, .taskbarItem9]
-        for (index, action) in items.enumerated() where options.winNumbers || options.bindings[action] != nil {
+        for (index, action) in items.enumerated() {
             bind(action) { [weak self] in DispatchQueue.main.async { self?.onTaskbarIndex?(index) } }
         }
         // Bound only when the user (or the Windows keyboard preset) gave them a chord.

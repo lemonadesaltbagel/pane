@@ -66,7 +66,6 @@ public enum SettingsPages {
         SettingsPage(id: "advanced", title: "Advanced", symbol: "wrench.and.screwdriver", category: nil, groups: [
             .init("Troubleshooting", [PaneSettings.debugLog.id]),
         ]),
-        SettingsPage(id: "pro", title: "pane Pro", symbol: "star.circle", category: nil, groups: []),
         SettingsPage(id: "about", title: "About", symbol: "info.circle", category: nil, groups: []),
     ]
 

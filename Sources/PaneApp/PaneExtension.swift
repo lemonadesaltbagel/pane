@@ -121,8 +121,8 @@ public final class PaneHost {
     }
     struct EditionChange { let isPro: Bool; let locks: [String: JSONValue]; let lockingOverrides: Bool }
     var editionChanged: (EditionChange, String, String?) -> Bool = { _, _, _ in false }
-    /// "Buy pane Pro…" in pane's menu (pane Pro's licensing, when a purchase page is set; nil hides it).
-    public var buyPro: (() -> Void)?
+    /// A purchase item in pane's menu, while not Pro: its title and action (nil: none).
+    public var purchase: (title: String, action: () -> Void)?
     public var openSettings: (String?) -> Void = { _ in }
     public var toggleShowDesktop: () -> Void = {}
     /// pane's menu (Settings, Pause, Quit) for a status item.
