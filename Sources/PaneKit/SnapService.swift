@@ -13,7 +13,8 @@ public enum NativeTakeover {
         .init("com.apple.WindowManager", "EnableTopTilingByEdgeDrag", .bool(false)),
     ]
     /// macOS 26's own menu on the maximize (green) button, for an extension whose snap layouts take its place: AppKit's
-    /// `NSZoomButtonShowMenu`, read by every app.
+    /// `NSZoomButtonShowMenu`. Apps read it when they start; one already running keeps the menu until it's reopened
+    /// (measured: ZoomMenuExperimentTests).
     public static let zoomButtonMenu: [SystemSettings.Change] = [.init(SystemSettings.globalDomain, "NSZoomButtonShowMenu", .bool(false))]
 }
 
