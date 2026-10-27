@@ -151,6 +151,30 @@ For each part below:
     `start.jump.<letter>`;
   - bottom bar: `start.account`, `start.place.<name>`, `start.power`.
 
+## Multiple displays
+
+Windows 11's behaviour (the plan's table is in pane Pro's research notes; tests in `MultiDisplayTests`):
+- **A taskbar per display:** `TaskbarDisplays` keeps a `TaskbarPanel` (`displayID`) on every display besides the
+  main one while `taskbar.allDisplays` is on. They have Start, the app buttons, the clock and show desktop; the tray
+  and the Dock's reservation stay with the main bar (`isMain`).
+  - They copy the main bar's settings and actions (`copySettings(from:)`, `syncSettings()`); give them the window
+    list with `update(_:)`.
+  - `taskbar.multiDisplayApps`: `all` (every bar lists every window, pinned apps on every bar), `mainAndOwn`, `own`
+    (`TaskbarPanel.displayFilter`, `showsPinned`).
+  - Start opens on the bar it was clicked on (`startedFrom`); the Win key opens it on the main display. The calendar
+    and the group pop-up open on their bar's display. Alt+Tab is on the main display.
+  - A bar's own Space decides whether it hides for a full-screen app (`PrivateAPI.currentSpaceKind(displayID:)`).
+- **Work areas:** `Geometry.workArea(of: screen)` is the display minus its menu bar, the Dock and pane's bar there.
+  macOS reserves space only under the Dock; `Geometry.setTaskbarReserves(_:)` tells the geometry where pane's other
+  bars are.
+- **Snapping:** `SnapZones.zone(for:in:others:)` doesn't snap at an edge another display touches (the pointer
+  crosses). `SnapService.moveToDisplay(_:_:)` / `moveFocusedWindowToDisplay(_:)` (`keys.nextDisplay` ⌃⌥⌘→,
+  `keys.previousDisplay` ⌃⌥⌘←; ⌘⇧→/← in the Windows keyboard) keeps a snap or maximize, else the window's size and
+  place (`Geometry.translated`), wrapping round at the end. The restore frame goes along.
+- **A display goes:** `SnapService.bringBackStrandedWindows(_:element:)` (the agent runs it a second after the
+  change) snaps a window again on the main display if pane snapped it on the display that went, and brings back one
+  left off screen.
+
 ## Snapping
 
 `SnapService`:
@@ -410,3 +434,6 @@ The library the engine's tests use, public so an extension's own tests can use i
   - `LiveSettingsHarness`: live settings, Alt+Tab and drags;
   - `StartUIHarness`: Start over Accessibility.
 - **Which agent:** `Harness.agentBinaryName` selects the agent a runner tests.
+- **A second display:** `SecondDisplay.with { frame in … }` adds a virtual one (`PaneVirtualDisplay`, CoreGraphics'
+  private `CGVirtualDisplay`) right of the main display for the body, removes it after, and checks your windows
+  didn't move. `pane-probe virtual-display [W H [SECONDS]]` does the same by hand.

@@ -119,6 +119,31 @@ public enum PrivateAPI {
         return Set(displays.compactMap { (($0["Current Space"] as? [String: Any])?["id64"] as? NSNumber)?.uint64Value })
     }
 
+    /// The kind of Space a display is showing now (each display has its own while "Displays have separate Spaces" is on).
+    public static func currentSpaceKind(displayID: CGDirectDisplayID) -> SpaceKind? {
+        guard let connection = cgsMainConnectionID?(),
+              let displays = cgsCopyManagedDisplaySpaces?(connection)?.takeRetainedValue() as? [[String: Any]],
+              let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue(),
+              let id = CFUUIDCreateString(nil, uuid) as String? else { return nil }
+        // One entry per display, or a single "Main" one when the displays share their Spaces.
+        guard let display = displays.first(where: { ($0["Display Identifier"] as? String)?.caseInsensitiveCompare(id) == .orderedSame })
+                ?? (displays.count == 1 ? displays.first : nil),
+              let current = display["Current Space"] as? [String: Any] else { return nil }
+        let type = (current["type"] as? NSNumber)?.intValue ?? -1
+        return type == 0 ? .desktop : type == 4 ? .fullscreen : .other(type)
+    }
+
+    /// Each display's Spaces, for diagnostics: "<display uuid prefix>: current <id>, <n> Spaces".
+    public static func displaySpacesSummary() -> [String] {
+        guard let connection = cgsMainConnectionID?(),
+              let displays = cgsCopyManagedDisplaySpaces?(connection)?.takeRetainedValue() as? [[String: Any]] else { return [] }
+        return displays.map { display in
+            let id = (display["Display Identifier"] as? String).map { String($0.prefix(8)) } ?? "?"
+            let current = ((display["Current Space"] as? [String: Any])?["id64"] as? NSNumber)?.uint64Value ?? 0
+            return "\(id): current \(current), \((display["Spaces"] as? [Any])?.count ?? 0) Spaces"
+        }
+    }
+
     /// DockDoor's options: ignoreGlobalClipShape | nominalResolution | fullSize (Stage Manager-safe).
     public static func captureWindow(_ wid: CGWindowID) -> CGImage? {
         guard let connection = cgsMainConnectionID?(), let capture = cgsHWCaptureWindowList else { return nil }

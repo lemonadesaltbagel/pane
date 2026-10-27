@@ -78,12 +78,23 @@ public final class TaskbarPanel {
     /// One level above the Dock, so the bar covers the small reserving Dock.
     public static let level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) + 1)
 
-    public init(inventory: WindowInventory, height: CGFloat, pinned: [String] = [], history: FocusHistory = FocusHistory(), mode: CombineMode = .never) {
+    /// The display this bar sits on: nil for the main display's (it has the tray and the Dock under it).
+    public let displayID: CGDirectDisplayID?
+    public var isMain: Bool { displayID == nil }
+    /// Its screen: the main display's for the main bar, or its own display while it's connected.
+    public var screen: NSScreen {
+        guard let displayID else { return NSScreen.screens[0] }
+        return NSScreen.screens.first { $0.displayID == displayID } ?? NSScreen.screens[0]
+    }
+
+    public init(inventory: WindowInventory, height: CGFloat, pinned: [String] = [], history: FocusHistory = FocusHistory(), mode: CombineMode = .never,
+                displayID: CGDirectDisplayID? = nil) {
         self.inventory = inventory
         self.pinned = pinned
         self.history = history
         self.mode = mode
-        let screen = NSScreen.screens[0]
+        self.displayID = displayID
+        let screen = displayID.flatMap { id in NSScreen.screens.first { $0.displayID == id } } ?? NSScreen.screens[0]
         panel = BarPanel(contentRect: NSRect(x: screen.frame.minX, y: screen.frame.minY, width: screen.frame.width, height: height),
                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isFloatingPanel = true // must precede `level`: it resets the level to .floating
@@ -95,7 +106,7 @@ public final class TaskbarPanel {
         panel.animationBehavior = .none // panels zoom in on show; mid-animation the WindowServer frame is scaled
         panel.becomesKeyOnlyIfNeeded = true
         GlassSurface.configure(panel, shadow: false)
-        panel.title = "Pane Taskbar"
+        panel.title = displayID.map { "Pane Taskbar \($0)" } ?? "Pane Taskbar"
 
         stack.orientation = .horizontal
         stack.spacing = 4
@@ -202,7 +213,9 @@ public final class TaskbarPanel {
     }
 
     public func updateVisibilityForSpace() {
-        if suppressed || PrivateAPI.activeSpace()?.kind == .fullscreen {
+        // Each display shows its own Space: a full-screen app on another display leaves this bar alone.
+        let kind = screen.displayID.flatMap { PrivateAPI.currentSpaceKind(displayID: $0) } ?? PrivateAPI.activeSpace()?.kind
+        if suppressed || kind == .fullscreen {
             panel.orderOut(nil)
             reportFrame()
         } else {
@@ -229,7 +242,7 @@ public final class TaskbarPanel {
 
     /// Keep the bar exactly screen-wide however many buttons there are (they shrink instead).
     private func pinFrame() {
-        let screen = NSScreen.screens[0]
+        let screen = self.screen
         let y = screen.frame.minY - (autoHide && !revealed ? panel.frame.height - 2 : 0)
         panel.setFrame(NSRect(x: screen.frame.minX, y: y, width: screen.frame.width, height: panel.frame.height), display: true)
         reportFrame()
@@ -267,7 +280,7 @@ public final class TaskbarPanel {
         if TrayLog.enabled, lastOverBar == nil { TrayLog.write("taskbar: auto-hide watching (visible \(panel.isVisible))") }
         guard autoHide, panel.isVisible || revealed else { return }
         let p = NSEvent.mouseLocation
-        let screen = NSScreen.screens[0].frame
+        let screen = self.screen.frame
         let overBar = p.x >= screen.minX && p.x <= screen.maxX && p.y <= screen.minY + (revealed ? panel.frame.height : 2)
         let popupOpen = flyoutPanel.isShown || ChoicePanel.shared.isShown || (trayProvider?.isPopupShown ?? false)
         if TrayLog.enabled, overBar != lastOverBar { lastOverBar = overBar; TrayLog.write("taskbar: auto-hide pointer \(Int(p.x)),\(Int(p.y)) over bar \(overBar) revealed \(revealed) visible \(panel.isVisible)") }
@@ -290,7 +303,7 @@ public final class TaskbarPanel {
     private func slide(show: Bool) {
         revealed = show
         TrayLog.write("taskbar: auto-hide \(show ? "shown" : "hidden")")
-        let screen = NSScreen.screens[0].frame
+        let screen = self.screen.frame
         let target = NSRect(x: screen.minX, y: screen.minY - (show ? 0 : panel.frame.height - 2), width: screen.width, height: panel.frame.height)
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             panel.setFrame(target, display: true)
@@ -372,7 +385,39 @@ public final class TaskbarPanel {
         var byPID = includedPIDs.map { pids in windows.filter { pids.contains($0.pid) } } ?? windows
         if let includedBundles { byPID = byPID.filter { includedBundles.contains($0.bundleID ?? "") } }
         if !hiddenBundles.isEmpty { byPID = byPID.filter { !hiddenBundles.contains($0.bundleID ?? "") } }
+        if let displayFilter { byPID = byPID.filter(displayFilter) }
         return windowFilter.map { byPID.filter($0) } ?? byPID
+    }
+
+    /// Which windows this bar lists among several displays (setting `taskbar.multiDisplayApps`): nil = all.
+    public var displayFilter: ((ManagedWindow) -> Bool)? { didSet { forceRebuild = true } }
+    /// Pinned apps show on this bar (another display's bar shows them only when every bar lists every window).
+    public var showsPinned = true { didSet { if showsPinned != oldValue { forceRebuild = true; update(lastWindows) } } }
+    private var shownPinned: [String] { showsPinned ? pinned : [] }
+
+    /// Another display's bar takes the main bar's settings and actions (the tray and the Dock's reservation stay on
+    /// the main bar).
+    public func copySettings(from main: TaskbarPanel) {
+        mode = main.mode
+        if alignment != main.alignment { alignment = main.alignment }
+        autoHide = main.autoHide
+        showBadges = main.showBadges
+        showAttention = main.showAttention
+        showHoverPreviews = main.showHoverPreviews
+        showDesktopCorner = main.showDesktopCorner
+        solidBackground = main.solidBackground
+        includedPIDs = main.includedPIDs
+        includedBundles = main.includedBundles
+        hiddenBundles = main.hiddenBundles
+        signals = main.signals
+        taskViewTitle = main.taskViewTitle
+        onTaskView = main.onTaskView
+        onStartRightClick = main.onStartRightClick
+        onShowDesktop = main.onShowDesktop
+        onTaskbarSettings = main.onTaskbarSettings
+        jumpList = main.jumpList
+        windowFilter = main.windowFilter
+        replacePinned(main.pinned)
     }
 
     /// Badges, progress and attention per bundle ID (DockSignals), shown on the app buttons.
@@ -408,6 +453,8 @@ public final class TaskbarPanel {
     /// The pinned list changed from the bar's menu (save it: setting `taskbar.pinned`).
     public var onPinnedChanged: (([String]) -> Void)?
     private var lastWindows: [ManagedWindow] = []
+    /// The window list last shown (before this bar's filters).
+    public var lastWindowList: [ManagedWindow] { lastWindows }
 
     /// Replaces the whole pinned list (the Dock's, when "Sync pinned apps with the Dock" is turned on).
     public func replacePinned(_ list: [String]) {
@@ -454,8 +501,8 @@ public final class TaskbarPanel {
     public func update(_ allWindows: [ManagedWindow]) {
         lastWindows = allWindows
         let windows = filtered(allWindows)
-        items = TaskbarLayout.items(windows: windows, pinned: pinned)
-        groups = TaskbarLayout.groups(windows: windows, pinned: pinned, appOrder: appOrder, history: history)
+        items = TaskbarLayout.items(windows: windows, pinned: shownPinned)
+        groups = TaskbarLayout.groups(windows: windows, pinned: shownPinned, appOrder: appOrder, history: history)
         let available = panel.frame.width - 90 - trayStack.fittingSize.width - clock.fittingSize.width - 40
         presentation = TaskbarLayout.present(groups: groups, mode: mode, availableWidth: available, previous: presentation)
         // Same buttons as before (only state changed: active, minimized, titles)? Update them in place. Rebuilding on
@@ -527,7 +574,7 @@ public final class TaskbarPanel {
         case .control:
             // Windows Ctrl+click: cycle through the group's windows (MRU head first, then seat order). Uses a
             // fresh window list: the bar's last snapshot can lag the real focus.
-            let fresh = TaskbarLayout.groups(windows: filtered(inventory.refreshNow()), pinned: pinned, appOrder: appOrder, history: history)
+            let fresh = TaskbarLayout.groups(windows: filtered(inventory.refreshNow()), pinned: shownPinned, appOrder: appOrder, history: history)
             if let group = fresh.first(where: { $0.key == button.groupKey }), let wid = cycle.next(group) {
                 if MouseTap.debug { print("cycle → \(wid) seats=\(group.windows.map { "\($0.id):\($0.title)\($0.isFocused ? "*" : "")" }) mru=\(group.mru)") }
                 TaskbarActions.focus(wid, inventory: inventory, history: history)
@@ -629,7 +676,7 @@ public final class TaskbarPanel {
         watchFlyout(anchor: screenFrame(of: view))
         let previews = WindowThumbnails.available
         let flyout = GroupFlyout.make(for: group, previewsAvailable: previews,
-                                      maxThumbnails: GroupFlyout.maxThumbnails(screenWidth: NSScreen.screens[0].frame.width,
+                                      maxThumbnails: GroupFlyout.maxThumbnails(screenWidth: screen.frame.width,
                                                                                thumbnailWidth: GroupFlyoutPanel.thumbnailWidth))
         let icon = group.bundleID.flatMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }.map { NSWorkspace.shared.icon(forFile: $0.path) }
         flyoutPanel.show(flyout, appIcon: icon, anchor: screenFrame(of: view))

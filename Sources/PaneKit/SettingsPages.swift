@@ -49,7 +49,8 @@ public enum SettingsPages {
             .init("Taskbar items", [PaneSettings.replaceDock.id, PaneSettings.pinned.id, PaneSettings.syncDockPins.id]),
             .init("Taskbar behaviors", [PaneSettings.alignment.id, PaneSettings.autoHide.id, PaneSettings.combineButtons.id,
                                         PaneSettings.badges.id, PaneSettings.flashing.id,
-                                        PaneSettings.farCornerShowsDesktop.id, PaneSettings.barHeight.id, PaneSettings.allDisplays.id]),
+                                        PaneSettings.farCornerShowsDesktop.id, PaneSettings.barHeight.id, PaneSettings.allDisplays.id,
+                                        PaneSettings.multiDisplayApps.id]),
         ]),
         SettingsPage(id: "multitasking", title: "Multitasking", symbol: "rectangle.split.2x1", category: "System", groups: [
             .init("Snap windows", [PaneSettings.takeOverTiling.id]),
@@ -58,7 +59,7 @@ public enum SettingsPages {
         ]),
         SettingsPage(id: "keyboard", title: "Keyboard", symbol: "keyboard", category: "System", groups: [
             .init("Start and menus", keys([.start, .menuMode, .settings])),
-            .init("Windows and snap", keys([.closeWindow, .fullScreen, .snapLeft, .snapRight, .maximize, .minimizeOrRestore, .nextDisplay])),
+            .init("Windows and snap", keys([.closeWindow, .fullScreen, .snapLeft, .snapRight, .maximize, .minimizeOrRestore, .nextDisplay, .previousDisplay])),
             .init("Taskbar", keys(Shortcut.taskbarItems + [.showDesktop, .fileExplorer])),
             .init("Tools", keys([.screenshot])),
             .init("Switching", keys([.switcher])),

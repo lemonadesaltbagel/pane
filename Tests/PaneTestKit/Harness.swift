@@ -65,8 +65,9 @@ public extension AgentHarness {
     }
 
     /// Buttons in pane's taskbar, read through AX like any other app's UI.
-    static func taskbarButtons(_ pid: pid_t) -> [(String, CGPoint)] {
-        guard let bar = AX.windows(of: pid).first(where: { AX.title($0) == "Pane Taskbar" }) else { return [] }
+    /// `bar`: the main bar by default; another display's is "Pane Taskbar <display id>".
+    static func taskbarButtons(_ pid: pid_t, bar title: String = "Pane Taskbar") -> [(String, CGPoint)] {
+        guard let bar = AX.windows(of: pid).first(where: { AX.title($0) == title }) else { return [] }
         var result: [(String, CGPoint)] = []
         func walk(_ element: AXUIElement) {
             if AX.role(element) == kAXButtonRole, let frame = AX.frame(element) {

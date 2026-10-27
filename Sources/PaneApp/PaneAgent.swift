@@ -163,10 +163,13 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
     let desktopMembership = DesktopMembership()
     /// Windows already in macOS full screen when pane started: left alone (only new ones are converted).
     var taskbar: TaskbarPanel!
+    /// The other displays' bars (`taskbar.allDisplays`).
+    var taskbars: TaskbarDisplays?
     var preview: SnapPreviewOverlay!
     var signalSources: [DispatchSourceSignal] = []
     var restored = false
     var updateChecks: Task<Void, Never>?
+    var screenObserver: NSObjectProtocol?
     var updateChecksOn: Bool?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -300,6 +303,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         host.openSettings = { [weak self] page in self?.openSettings(page: page) }
         host.toggleShowDesktop = { [weak self] in self?.toggleShowDesktop() }
         for e in extensions { e.start(host) }
+        taskbars?.syncSettings()
         log("extensions: \(extensions.map(\.name).joined(separator: ", "))")
     }
 
@@ -453,6 +457,10 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         taskbar.includedBundles = args.taskbarScope
         taskbar.onShowDesktop = { [weak self] in self?.toggleShowDesktop() }
         taskbar.onTaskbarSettings = { [weak self] in self?.openSettings(page: "taskbar") }
+        let barHeight = height, combine = config.combineButtons
+        taskbars = TaskbarDisplays(main: taskbar, height: barHeight) { [inventory, history] id in
+            TaskbarPanel(inventory: inventory, height: barHeight, pinned: pinned, history: history, mode: combine, displayID: id)
+        }
         applyLiveSettings()
         liveSettings.append(prefs.observeAll { [weak self] _ in self?.applyLiveSettings() })
         taskbar.onPinnedChanged = { [weak self] list in
@@ -504,6 +512,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         inventory.onChange = { [weak self] windows in
             MainActor.assumeIsolated {
                 self?.taskbar.update(windows)
+                self?.taskbars?.update(windows)
                 self?.history.update(windows)
                 self?.fullScreen.focusChanged(to: windows.first(where: \.isFocused)?.id)
                 // A window focused while the desktop is shown: the next Show desktop starts over (Windows).
@@ -519,6 +528,19 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
             }
         }
         inventory.start()
+        // A display went: windows macOS left off screen come to the main display (Windows). A second after the change,
+        // so macOS's own relocation goes first.
+        screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                MainActor.assumeIsolated {
+                    guard let self, !self.args.dryRun else { return }
+                    let scope = self.args.desktopScope
+                    let windows = self.inventory.refreshNow().filter { w in scope.map { $0.contains(w.bundleID ?? "") } ?? true }
+                    let moved = self.snap.bringBackStrandedWindows(windows) { [inventory = self.inventory] in inventory.element(for: $0) }
+                    if moved > 0 { log("displays changed: brought \(moved) window(s) back on screen") }
+                }
+            }
+        }
         // pane started with windows reaching under where the taskbar now is (an auto-hidden Dock let them go to the
         // bottom): move them back into the work area, as Windows does.
         if config.replaceDock, !config.autoHide, !args.dryRun {
@@ -671,8 +693,10 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         model.onOpened = { what in log("start: opened \(what)") }
         let controller = StartMenuController(model: model)
         controller.anchor = { [weak self] in
-            guard let self, let taskbar = self.taskbar else { return (48, nil, false) }
-            return (CGFloat(self.config.barHeight), taskbar.startButtonFrame, self.prefs[PaneSettings.alignment] == "left")
+            guard let self, let taskbar = self.taskbar else { return (48, nil, false, nil) }
+            // The bar whose Start button was clicked (another display's), else the main one (the Win key).
+            let bar = self.taskbars?.startedFrom ?? taskbar
+            return (CGFloat(self.config.barHeight), bar.startButtonFrame, self.prefs[PaneSettings.alignment] == "left", bar.screen.frame)
         }
         startMenu = controller
         startStore = store
@@ -758,6 +782,12 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         taskbar.showAttention = prefs[PaneSettings.flashing]
         taskbar.showDesktopCorner = prefs[PaneSettings.farCornerShowsDesktop]
         taskbar.hiddenBundles = live.hidden
+        if let taskbars {
+            taskbars.apps = TaskbarDisplays.Apps(rawValue: prefs[PaneSettings.multiDisplayApps]) ?? .all
+            taskbars.enabled = prefs[PaneSettings.allDisplays]
+            // Extensions observe the settings too and change the main bar after this: the other bars follow next turn.
+            DispatchQueue.main.async { [weak taskbars] in MainActor.assumeIsolated { taskbars?.syncSettings() } }
+        }
         inventory.scheduleRefresh() // the window filters changed
     }
 
@@ -848,6 +878,7 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
         fullScreen.shutdown()
         snap.stop()
         inventory.stop()
+        taskbars?.close()
         taskbar?.close()
         extensions.forEach { $0.stop() }
         menuBarIcon?.uninstall()

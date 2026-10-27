@@ -64,6 +64,19 @@ public struct PlacementStore: Codable {
 
     public mutating func forget(_ wid: CGWindowID) { entries[wid] = nil }
 
+    /// Where pane last snapped the window, whatever its frame is now (nil: not snapped, or restored since).
+    public func placed(_ wid: CGWindowID) -> (frame: CGRect, snap: Geometry.Snap)? {
+        guard let entry = entries[wid], let applied = entry.applied, let snap = entry.snap else { return nil }
+        return (applied, snap)
+    }
+
+    /// The window went to another display: its restore frame goes along, at the same place relative to the work area
+    /// (shrunk to fit), so restoring keeps it there (Windows).
+    public mutating func moveRestore(_ wid: CGWindowID, from: CGRect, to: CGRect) {
+        guard let restore = entries[wid]?.restore else { return }
+        entries[wid]?.restore = Geometry.translated(restore, from: from, to: to)
+    }
+
     /// The frame actually applied (gaps between snapped windows): state detection compares against it.
     public mutating func setApplied(_ wid: CGWindowID, _ frame: CGRect) { entries[wid]?.applied = frame }
 }

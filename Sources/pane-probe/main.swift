@@ -3,6 +3,7 @@
 
 import AppKit
 import PaneKit
+import PaneVirtualDisplay
 
 
 // Manual probe for real apps. Examples:
@@ -50,7 +51,38 @@ let args = CommandLine.arguments.dropFirst()
 guard let command = args.first else { usage() }
 
 switch command {
-case "perms":
+case "virtual-display":
+    // pane-probe virtual-display [WIDTH HEIGHT [SECONDS]]: adds a display, lists the screens, removes it.
+    let a = Array(CommandLine.arguments.dropFirst(2))
+    let width = UInt32(a.first ?? "") ?? 1920, height = UInt32(a.dropFirst().first ?? "") ?? 1080
+    let seconds = Double(a.dropFirst(2).first ?? "") ?? 3
+    func displays() -> [String] {
+        var ids = [CGDirectDisplayID](repeating: 0, count: 16); var count: UInt32 = 0
+        CGGetActiveDisplayList(16, &ids, &count)
+        return ids.prefix(Int(count)).map { id in
+            let b = CGDisplayBounds(id)
+            return "display \(id)\(CGDisplayIsMain(id) != 0 ? " (main)" : "") \(Int(b.minX)),\(Int(b.minY)) \(Int(b.width))×\(Int(b.height))"
+        }
+    }
+    func screens() -> [String] {
+        NSScreen.screens.map { "screen \($0.localizedName): frame \($0.frame) visible \($0.visibleFrame)" }
+    }
+    func spin(_ t: Double) { RunLoop.main.run(until: Date().addingTimeInterval(t)) }
+    print("before: \(displays())")
+    let windowsBefore = WindowServer.windows().filter { $0.layer == 0 }.map { "\($0.id) \($0.bounds)" }
+    guard let display = PaneVirtualDisplay(width: width, height: height, hiDPI: false, name: "pane test display") else { print("✘ couldn't create a virtual display"); exit(1) }
+    print("created display \(display.displayID)")
+    spin(seconds)
+    print("with it: \(displays())")
+    for line in screens() { print("  " + line) }
+    print("  spaces per display: \(PrivateAPI.displaySpacesSummary())")
+    let moved = WindowServer.windows().filter { $0.layer == 0 }.map { "\($0.id) \($0.bounds)" }.filter { !windowsBefore.contains($0) }
+    print("windows moved or new: \(moved.count)")
+    display.remove()
+    spin(2)
+    print("after removal: \(displays())")
+    exit(0)
+
     print("Accessibility:", AX.isTrusted, " Screen Recording:", Capture.hasScreenRecording)
     for (name, present) in PrivateAPI.availability.sorted(by: { $0.key < $1.key }) { print("  \(name): \(present)") }
 

@@ -193,8 +193,8 @@ public final class StartMenuController: NSObject {
     private let hosting: NSHostingView<StartRootView>
     private var clickMonitor: Any?
     private var resignObserver: NSObjectProtocol?
-    /// Where Start opens: the taskbar's top edge and the Start button (AppKit coordinates).
-    public var anchor: () -> (barTop: CGFloat, startButton: NSRect?, leftAligned: Bool) = { (48, nil, false) }
+    /// Where Start opens (AppKit coordinates): above that bar's top, at its Start button when the bar is left-aligned, on that bar's screen.
+    public var anchor: () -> (barTop: CGFloat, startButton: NSRect?, leftAligned: Bool, screen: NSRect?) = { (48, nil, false, nil) }
     public private(set) var lastOpenMilliseconds: Double = 0
 
     final class StartPanel: NSPanel {
@@ -240,8 +240,8 @@ public final class StartMenuController: NSObject {
         model.onWillShow?()
         if let search { model.query = search }
         let size = model.size
-        let (barTop, button, left) = anchor()
-        let screen = NSScreen.screens.first?.frame ?? .zero
+        let (barTop, button, left, onScreen) = anchor()
+        let screen = onScreen ?? NSScreen.screens.first?.frame ?? .zero
         let x = left ? max(screen.minX + 12, (button?.minX ?? screen.minX + 12)) : screen.midX - size.width / 2
         let height = min(size.height, screen.height - barTop - 48)
         panel.setFrame(NSRect(x: x, y: screen.minY + barTop + 12, width: size.width, height: height), display: false)

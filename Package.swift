@@ -33,6 +33,7 @@ let package = Package(
         .library(name: "PaneShell", targets: ["PaneShell"]),
         .library(name: "PaneApp", targets: ["PaneApp"]),
         .library(name: "PaneTestKit", targets: ["PaneTestKit"]),
+        .library(name: "PaneVirtualDisplay", targets: ["PaneVirtualDisplay"]),
         .executable(name: "pane", targets: ["pane"]),
         .executable(name: "PanePreview", targets: ["PanePreview"]),
         .executable(name: "PaneFixture", targets: ["PaneFixture"]),
@@ -52,13 +53,15 @@ let package = Package(
         .executableTarget(name: "PanePreview", dependencies: ["PaneKit"]),
         // A controllable AppKit app that tests launch and manipulate, so tests never touch the user's apps.
         .executableTarget(name: "PaneFixture"),
+        // A virtual display in place of a second monitor (tests and the probe; never in the app).
+        .target(name: "PaneVirtualDisplay", linkerSettings: [.linkedFramework("CoreGraphics")]),
         // Manual probe CLI for poking at real apps.
-        .executableTarget(name: "pane-probe", dependencies: ["PaneKit"]),
+        .executableTarget(name: "pane-probe", dependencies: ["PaneKit", "PaneVirtualDisplay"]),
         // What the integration tests share (also for extensions' own tests): the fixture app, polling, findings, the
         // integration root suite, and launching and reading a test agent.
         .target(
             name: "PaneTestKit",
-            dependencies: ["PaneKit", "PaneShell"],
+            dependencies: ["PaneKit", "PaneShell", "PaneVirtualDisplay"],
             path: "Tests/PaneTestKit",
             swiftSettings: testingFlags.swift,
             linkerSettings: testingFlags.linker

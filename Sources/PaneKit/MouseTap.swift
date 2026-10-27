@@ -4,11 +4,21 @@
 import AppKit
 import ApplicationServices
 
-/// Windows-style snap zones for drag-to-edge (Rectangle's thresholds: 5 pt edge margin, 20 pt corners).
+/// Windows-style snap zones for drag-to-edge (Rectangle's thresholds: 5 pt edge margin, 20 pt corners). An edge another
+/// display touches at the pointer doesn't snap: the pointer crosses there (Windows).
 public enum SnapZones {
-    public static func zone(for point: CGPoint, in screen: CGRect, margin: CGFloat = 5, corner: CGFloat = 20) -> Geometry.Snap? {
-        let left = point.x <= screen.minX + margin, right = point.x >= screen.maxX - margin - 1
-        let top = point.y <= screen.minY + margin, bottom = point.y >= screen.maxY - margin - 1
+    public static func zone(for point: CGPoint, in screen: CGRect, others: [CGRect] = [], margin: CGFloat = 5, corner: CGFloat = 20) -> Geometry.Snap? {
+        func touches(_ other: CGRect, _ edge: CGRectEdge) -> Bool {
+            switch edge {
+            case .minXEdge: return abs(other.maxX - screen.minX) < 1 && point.y >= other.minY && point.y < other.maxY
+            case .maxXEdge: return abs(other.minX - screen.maxX) < 1 && point.y >= other.minY && point.y < other.maxY
+            case .minYEdge: return abs(other.maxY - screen.minY) < 1 && point.x >= other.minX && point.x < other.maxX
+            case .maxYEdge: return abs(other.minY - screen.maxY) < 1 && point.x >= other.minX && point.x < other.maxX
+            }
+        }
+        func open(_ edge: CGRectEdge) -> Bool { !others.contains { $0 != screen && touches($0, edge) } }
+        let left = point.x <= screen.minX + margin && open(.minXEdge), right = point.x >= screen.maxX - margin - 1 && open(.maxXEdge)
+        let top = point.y <= screen.minY + margin && open(.minYEdge), bottom = point.y >= screen.maxY - margin - 1 && open(.maxYEdge)
         let nearTop = point.y <= screen.minY + corner, nearBottom = point.y >= screen.maxY - corner - 1
         if left && nearTop || top && point.x <= screen.minX + corner { return .topLeft }
         if right && nearTop || top && point.x >= screen.maxX - corner - 1 { return .topRight }

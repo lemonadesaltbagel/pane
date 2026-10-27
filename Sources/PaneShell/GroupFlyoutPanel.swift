@@ -70,7 +70,8 @@ public final class GroupFlyoutPanel {
         }
         stack.setViews(views, in: .leading)
         let size = stack.fittingSize
-        let screen = NSScreen.screens[0].frame
+        // The bar's own display (another display's bar opens it there).
+        let screen = (NSScreen.screens.first { $0.frame.intersects(anchor) } ?? NSScreen.screens[0]).frame
         let x = min(max(screen.minX + 4, anchor.midX - size.width / 2), screen.maxX - size.width - 4)
         panel.setFrame(NSRect(x: x, y: anchor.maxY + 8, width: size.width, height: size.height), display: true)
         panel.orderFrontRegardless()

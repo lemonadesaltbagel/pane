@@ -26,10 +26,33 @@ public enum Geometry {
         }
     }
 
-    /// The Windows "work area": the screen minus menu bar and Dock, in AX coordinates.
+    /// What pane's taskbars keep free at the bottom of screens (each screen's AX frame and the bar's height). macOS
+    /// reserves space only under the Dock, on one display; the work area takes the larger. Set on the main thread by
+    /// the agent, read from the event taps too.
+    public static func setTaskbarReserves(_ reserves: [(screen: CGRect, height: CGFloat)]) { reserveLock.withLock { self.reserves = reserves } }
+    static func taskbarReserve(_ screen: CGRect) -> CGFloat {
+        reserveLock.withLock { reserves.first { $0.screen == screen }?.height ?? 0 }
+    }
+    private static let reserveLock = NSLock()
+    nonisolated(unsafe) private static var reserves: [(screen: CGRect, height: CGFloat)] = []
+
+    /// The Windows "work area" of a screen: minus the menu bar, the Dock and pane's taskbar there, in AX coordinates.
+    public static func workArea(of screen: NSScreen) -> CGRect {
+        var visible = screen.visibleFrame
+        let extra = taskbarReserve(cocoaToAX(screen.frame, primaryHeight: primaryHeight)) - (visible.minY - screen.frame.minY)
+        if extra > 0 { visible.origin.y += extra; visible.size.height -= extra }
+        return cocoaToAX(visible, primaryHeight: primaryHeight)
+    }
+
+    /// The work area of the screen holding most of `axFrame`.
     public static func workArea(for axFrame: CGRect) -> CGRect? {
-        guard let screen = screen(containing: axFrame) else { return nil }
-        return cocoaToAX(screen.visibleFrame, primaryHeight: primaryHeight)
+        screen(containing: axFrame).map(workArea(of:))
+    }
+
+    /// Screens' frames in AX coordinates, the primary first.
+    public static var screenFramesAX: [CGRect] {
+        let height = primaryHeight
+        return NSScreen.screens.map { cocoaToAX($0.frame, primaryHeight: height) }
     }
 
     /// Gaps between snapped windows (`SnapService.gap`): every edge moves in by half the gap, and edges on the
@@ -73,10 +96,29 @@ public enum Geometry {
         }
     }
 
+    /// `frame` moved from work area `from` to `to`: the same size (shrunk to fit) and the same share of the free space
+    /// left of and above it.
+    public static func translated(_ frame: CGRect, from: CGRect, to: CGRect) -> CGRect {
+        let size = CGSize(width: min(frame.width, to.width), height: min(frame.height, to.height))
+        func place(_ offset: CGFloat, _ room: CGFloat, _ newRoom: CGFloat) -> CGFloat {
+            room > 0 ? (offset / room * newRoom).rounded() : (newRoom / 2).rounded()
+        }
+        let x = to.minX + max(0, min(to.width - size.width, place(frame.minX - from.minX, from.width - frame.width, to.width - size.width)))
+        let y = to.minY + max(0, min(to.height - size.height, place(frame.minY - from.minY, from.height - frame.height, to.height - size.height)))
+        return CGRect(origin: CGPoint(x: x, y: y), size: size)
+    }
+
     public static func approximatelyEqual(_ a: CGRect, _ b: CGRect, tolerance: CGFloat = 2) -> Bool {
         abs(a.minX - b.minX) <= tolerance && abs(a.minY - b.minY) <= tolerance &&
             abs(a.width - b.width) <= tolerance && abs(a.height - b.height) <= tolerance
     }
 
     private static func area(_ rect: CGRect) -> CGFloat { rect.isNull ? 0 : rect.width * rect.height }
+}
+
+extension NSScreen {
+    /// The screen's display (`NSScreenNumber`).
+    public var displayID: CGDirectDisplayID? {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+    }
 }

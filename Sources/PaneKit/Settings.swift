@@ -300,8 +300,9 @@ public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
     public static let fileExplorer = Shortcut("fileExplorer", "Open a Finder window")
     /// No chord in the Mac keyboard: macOS has its own (⌘⇧4, ⌘⇧5).
     public static let screenshot = Shortcut("screenshot", "Screenshot to the clipboard (Win+Shift+S)")
-    public static let nextDisplay = Shortcut("nextDisplay", "Move window to next display", default: KeyBinding([.ctrl, .alt, .cmd], "right"),
-                                             implemented: false)
+    /// Win+Shift+→ / ←: the focused window to the display that way, keeping a snap or maximize.
+    public static let nextDisplay = Shortcut("nextDisplay", "Move window to next display", default: KeyBinding([.ctrl, .alt, .cmd], "right"))
+    public static let previousDisplay = Shortcut("previousDisplay", "Move window to previous display", default: KeyBinding([.ctrl, .alt, .cmd], "left"))
     // Win+I (D5): ⌃⌘I here (⌘I is Italic / Get Info in Mac apps); the Windows keyboard uses ⌘I.
     public static let settings = Shortcut("settings", "Open pane Settings", default: KeyBinding([.ctrl, .cmd], "i"))
 
@@ -310,7 +311,7 @@ public struct Shortcut: Hashable, Sendable, CustomStringConvertible {
                                                   taskbarItem6, taskbarItem7, taskbarItem8, taskbarItem9]
 
     static let engine: [Shortcut] = [start, menuMode, closeWindow, fullScreen, snapLeft, snapRight, maximize, minimizeOrRestore]
-        + taskbarItems + [switcher, showDesktop, fileExplorer, nextDisplay, settings, screenshot]
+        + taskbarItems + [switcher, showDesktop, fileExplorer, nextDisplay, previousDisplay, settings, screenshot]
     private static let lock = NSLock()
     nonisolated(unsafe) private static var registered: [Shortcut] = []
 
@@ -333,7 +334,7 @@ public enum ShortcutPresets {
         var mac: [Shortcut: KeyBinding?] = [:]
         mac[.snapLeft] = KeyBinding([.ctrl, .alt], "left"); mac[.snapRight] = KeyBinding([.ctrl, .alt], "right")
         mac[.maximize] = KeyBinding([.ctrl, .alt], "up"); mac[.minimizeOrRestore] = KeyBinding([.ctrl, .alt], "down")
-        mac[.nextDisplay] = KeyBinding([.ctrl, .alt, .cmd], "right")
+        mac[.nextDisplay] = KeyBinding([.ctrl, .alt, .cmd], "right"); mac[.previousDisplay] = KeyBinding([.ctrl, .alt, .cmd], "left")
         for d in Shortcut.taskbarItems { mac[d] = .some(nil) }
         mac[.showDesktop] = .some(nil) // macOS has its own (F11)
         mac[.fileExplorer] = .some(nil)
@@ -509,7 +510,11 @@ public enum PaneSettings {
     public static let farCornerShowsDesktop = Setting("taskbar.farCornerShowsDesktop", true, .taskbar, "Select the far corner to show the desktop", status: .live)
     public static let autoHide = Setting("taskbar.autoHide", false, .taskbar, "Automatically hide the taskbar",
         help: "Windows use the whole screen; the taskbar comes back when the pointer reaches the bottom edge.")
-    public static let allDisplays = Setting("taskbar.allDisplays", true, .taskbar, "Show the taskbar on all displays", status: .planned)
+    public static let allDisplays = Setting("taskbar.allDisplays", true, .taskbar, "Show my taskbar on all displays",
+        help: "Every display gets a taskbar with Start, apps and the clock; the tray stays on the main display's.", status: .live)
+    public static let multiDisplayApps = Setting("taskbar.multiDisplayApps", "all", .taskbar, "When using multiple displays, show my taskbar apps on",
+        kind: .choice([.init("all", "All taskbars"), .init("mainAndOwn", "Main taskbar and taskbar where window is open"),
+                       .init("own", "Taskbar where window is open")]), status: .live)
 
 
     // Snap & windows
@@ -552,7 +557,7 @@ public enum PaneSettings {
         startMostUsed.erased, startShowAll.erased, startAllView.erased, startHideAccount.erased, startFolders.erased,
         theme.erased, material.erased,
         replaceDock.erased, barHeight.erased, alignment.erased, combineButtons.erased, pinned.erased, syncDockPins.erased, badges.erased, flashing.erased,
-        farCornerShowsDesktop.erased, autoHide.erased, allDisplays.erased,
+        farCornerShowsDesktop.erased, autoHide.erased, allDisplays.erased, multiDisplayApps.erased,
         takeOverTiling.erased, snap.erased, clickThrough.erased,
         ignoreShortcuts.erased, replaceCommandTab.erased,
         hideFromTaskbar.erased, debugLog.erased,

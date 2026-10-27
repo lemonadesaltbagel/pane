@@ -110,6 +110,8 @@ public final class HotkeyService {
         if let snap {
             let arrows: [(Shortcut, SnapTransitions.Arrow)] = [(.snapLeft, .left), (.snapRight, .right), (.maximize, .up), (.minimizeOrRestore, .down)]
             for (action, arrow) in arrows { bind(action) { snap.arrowOnFocusedWindow(arrow) } }
+            bind(.nextDisplay) { snap.moveFocusedWindowToDisplay(.right) }
+            bind(.previousDisplay) { snap.moveFocusedWindowToDisplay(.left) }
         }
         let items: [Shortcut] = [.taskbarItem1, .taskbarItem2, .taskbarItem3, .taskbarItem4, .taskbarItem5, .taskbarItem6, .taskbarItem7, .taskbarItem8, .taskbarItem9]
         for (index, action) in items.enumerated() {

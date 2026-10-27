@@ -213,14 +213,14 @@ public final class SnapService {
 
     public func snap(_ window: AXUIElement, to snap: Geometry.Snap, on screen: NSScreen? = nil, assist: Bool = false) {
         guard let wid = PrivateAPI.windowID(of: window), let frame = AX.frame(window) else { return }
-        let work = screen.map { Geometry.cocoaToAX($0.visibleFrame, primaryHeight: Geometry.primaryHeight) } ?? Geometry.workArea(for: frame)
+        let work = screen.map(Geometry.workArea(of:)) ?? Geometry.workArea(for: frame)
         guard let work else { return }
         var target = lock.withLock { store.snap(wid, currentFrame: frame, to: snap, workArea: work) }
         if gap > 0, snap != .maximize {
             target = Geometry.gapped(target, in: work, gap: gap)
             lock.withLock { store.setApplied(wid, target) }
         }
-        AX.setFrame(window, target)
+        if let screen, Geometry.screen(containing: frame) != screen { Self.setFrameAcrossDisplays(window, target) } else { AX.setFrame(window, target) }
         save()
         if assist, assistEnabled { DispatchQueue.main.async { [weak self] in self?.onAssist?(window, snap) } }
     }
@@ -250,12 +250,76 @@ public final class SnapService {
         self.arrow(arrow, on: window)
     }
 
-    private func neighbourScreen(of window: AXUIElement, _ direction: SnapTransitions.Arrow) -> NSScreen? {
+    /// Win+Shift+→ / ←: the focused window to the next display that way, wrapping round at the end (Windows). A snapped
+    /// or maximized window keeps its snap there; a free one keeps its size (shrunk to fit) and its place relative to the
+    /// work area.
+    public func moveFocusedWindowToDisplay(_ direction: SnapTransitions.Arrow) {
+        guard let pid = AX.frontmostPID(), let window = AX.focusedWindow(of: pid) else { return }
+        moveToDisplay(window, direction)
+    }
+
+    public func moveToDisplay(_ window: AXUIElement, _ direction: SnapTransitions.Arrow) {
+        guard !excluded(window), let frame = AX.frame(window), let current = Geometry.screen(containing: frame),
+              let target = neighbourScreen(of: window, direction, wrap: true), target != current else { return }
+        let from = Geometry.workArea(of: current), to = Geometry.workArea(of: target)
+        if case .snapped(let snap) = state(of: window) {
+            if let wid = PrivateAPI.windowID(of: window) { lock.withLock { store.moveRestore(wid, from: from, to: to) } }
+            self.snap(window, to: snap, on: target)
+            return
+        }
+        Self.setFrameAcrossDisplays(window, Geometry.translated(frame, from: from, to: to))
+    }
+
+    /// An app sizes a window for the display it's on, and hears about a new display a moment after the move: the
+    /// size set right after crossing gets clamped to the old one (measured: 1002 → 902 pt high). Once more shortly after.
+    static func setFrameAcrossDisplays(_ window: AXUIElement, _ frame: CGRect) {
+        AX.setFrame(window, frame)
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
+            if let now = AX.frame(window), !Geometry.approximatelyEqual(now, frame) { AX.setFrame(window, frame) }
+        }
+    }
+
+    /// Displays changed: a window left mostly off every screen (its display went) comes to the main display, keeping a
+    /// snap or maximize; a free one keeps its size (shrunk to fit), centred (Windows). A window snapped on a display
+    /// that's gone, which macOS already put back where it last was, is snapped the same way on the main display.
+    /// Returns how many moved.
+    @discardableResult
+    public func bringBackStrandedWindows(_ windows: [ManagedWindow], element: (CGWindowID) -> AXUIElement?) -> Int {
+        let screens = Geometry.screenFramesAX
+        guard let main = NSScreen.screens.first else { return 0 }
+        let work = Geometry.workArea(of: main)
+        var moved = 0
+        for window in windows where window.isOnVisibleSpace && !window.isMinimized {
+            guard let ax = element(window.id), let frame = AX.frame(ax) else { continue }
+            if let placed = lock.withLock({ store.placed(window.id) }), !screens.contains(where: { $0.contains(CGPoint(x: placed.frame.midX, y: placed.frame.midY)) }) {
+                lock.withLock { store.forget(window.id) }
+                self.snap(ax, to: placed.snap, on: main)
+                moved += 1
+                continue
+            }
+            let visible = screens.map { $0.intersection(frame) }.filter { !$0.isNull }.map { $0.width * $0.height }.reduce(0, +)
+            guard visible < min(frame.width * frame.height * 0.25, 120 * 120) else { continue }
+            if case .snapped(let snap) = state(of: ax) {
+                self.snap(ax, to: snap, on: main)
+            } else {
+                let size = CGSize(width: min(frame.width, work.width), height: min(frame.height, work.height))
+                Self.setFrameAcrossDisplays(ax, CGRect(x: work.midX - size.width / 2, y: work.midY - size.height / 2, width: size.width, height: size.height).integral)
+            }
+            moved += 1
+        }
+        return moved
+    }
+
+    private func neighbourScreen(of window: AXUIElement, _ direction: SnapTransitions.Arrow, wrap: Bool = false) -> NSScreen? {
         guard let frame = AX.frame(window), let current = Geometry.screen(containing: frame) else { return nil }
         let others = NSScreen.screens.filter { $0 != current }
         switch direction {
-        case .left: return others.filter { $0.frame.midX < current.frame.midX }.max { $0.frame.midX < $1.frame.midX }
-        case .right: return others.filter { $0.frame.midX > current.frame.midX }.min { $0.frame.midX < $1.frame.midX }
+        case .left:
+            return others.filter { $0.frame.midX < current.frame.midX }.max { $0.frame.midX < $1.frame.midX }
+                ?? (wrap ? others.max { $0.frame.midX < $1.frame.midX } : nil)
+        case .right:
+            return others.filter { $0.frame.midX > current.frame.midX }.min { $0.frame.midX < $1.frame.midX }
+                ?? (wrap ? others.min { $0.frame.midX < $1.frame.midX } : nil)
         default: return nil
         }
     }
@@ -299,7 +363,7 @@ public final class SnapService {
     }
 
     private func target(at point: CGPoint) -> CGRect? {
-        guard let screen = screenFrameAX(containing: point), let zone = SnapZones.zone(for: point, in: screen),
+        guard let screen = screenFrameAX(containing: point), let zone = SnapZones.zone(for: point, in: screen, others: Geometry.screenFramesAX),
               let work = Geometry.workArea(for: CGRect(origin: point, size: CGSize(width: 1, height: 1))) else { return nil }
         return Geometry.rect(for: zone, in: work)
     }
@@ -356,7 +420,7 @@ public final class SnapService {
             }
         }
         if dragExcluded || shookThisDrag { return }
-        guard let screen = screenFrameAX(containing: point), let zone = SnapZones.zone(for: point, in: screen) else { return }
+        guard let screen = screenFrameAX(containing: point), let zone = SnapZones.zone(for: point, in: screen, others: Geometry.screenFramesAX) else { return }
         let height = Geometry.primaryHeight
         snap(window, to: zone, on: NSScreen.screens.first { Geometry.cocoaToAX($0.frame, primaryHeight: height) == screen }, assist: true)
     }

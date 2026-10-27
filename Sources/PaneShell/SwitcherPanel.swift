@@ -58,7 +58,8 @@ public final class SwitcherPanel {
         loadTask?.cancel()
         tiles.forEach { $0.removeFromSuperview() }
         pointerAtShow = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main ?? NSScreen.screens[0]
+        // On the main display, listing every display's windows (Windows 11).
+        let screen = NSScreen.screens[0]
         let maxRowWidth = screen.visibleFrame.width * 0.86
         let shown = Array(items.prefix(Self.maxTiles))
         tiles = shown.enumerated().map { index, item in

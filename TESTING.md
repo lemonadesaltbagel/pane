@@ -53,6 +53,11 @@ helper itself.
   - ⌃⌘F is full screen on the current desktop.
 - **Rebinding:** every shortcut can be rebound in Settings ▸ Keyboard; *Restore Mac shortcuts* puts the Mac set back.
 
+**More than one display:** each display gets a taskbar (Settings ▸ Taskbar ▸ *Show my taskbar on all displays*), and
+*When using multiple displays, show my taskbar apps on* picks which bar lists a window. ⌃⌥⌘← / → move the focused
+window to the other display. `pane-probe virtual-display 1920 1080 30` adds a virtual display for 30 s to try it
+without a monitor.
+
 **Start:**
 - Tap ⌘ or click Start for pane's Windows 11 Start: search, Pinned, Recent, All, account and power.
 - Settings ▸ Start chooses "macOS Apps" instead.
@@ -85,6 +90,8 @@ and `--unit` on a macOS 26 runner. The integration tests need Accessibility and 
 - **Login items:** test agents never touch yours, unless a test points `PANE_LAUNCH_AGENTS_DIR` at its own folder.
 - **Power:** a test agent never sleeps, restarts or shuts down the Mac (`PANE_FAKE_POWER` logs the action instead).
 - **Screenshots:** a test agent never opens the capture tool (`PANE_FAKE_SCREENSHOT` logs instead).
+- **A second display:** the multiple-display suites add a virtual display (no hardware) right of the main one for a
+  test and remove it after. Only fixture windows go there, and the test checks none of yours moved.
 - **Welcome:** it shows in a test agent only with `PANE_ONBOARDING=1`.
 - **Permissions:** faked with `PANE_FAKE_PERMISSIONS_FILE` (`accessibility=missing`).
 - **Conflicting apps:** `PANE_EXTRA_CONFLICTS` makes the fixture count as a conflicting app.
