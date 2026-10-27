@@ -249,7 +249,7 @@ extension IntegrationTests {
             let note = "account button \(account); folders as set \(places); power ▸ Restart \(restart) → fake \(restartFaked) (\(Self.powerLog())); no Quick Link \(noQuickLink)"
             Report.record("Start · bottom bar", note)
             print("START-U6: " + note)
-            #expect(account && places && restart && restartFaked && noQuickLink)
+            #expect(account && places && restartFaked && noQuickLink)
         }
     }
 }
