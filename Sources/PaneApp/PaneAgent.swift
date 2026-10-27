@@ -516,7 +516,11 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
                 self?.taskbar.update(windows)
                 self?.taskbars?.update(windows)
                 self?.history.update(windows)
-                self?.fullScreen.focusChanged(to: windows.first(where: \.isFocused)?.id)
+                // Only a window you can see counts: a minimized one, or one moved to another virtual desktop, can stay
+                // focused for AX, and the bar stayed hidden over a desktop without it (or re-filling pulled it out of
+                // parking).
+                let desktops = self?.desktopMembership
+                self?.fullScreen.focusChanged(to: windows.first(where: { $0.isFocused && !$0.isMinimized && (desktops?.isOnCurrent($0.id) ?? true) })?.id)
                 // A window focused while the desktop is shown: the next Show desktop starts over (Windows).
                 if self?.showDesktop.isShowingDesktop == true, windows.contains(where: { $0.isFocused && !$0.isMinimized }) { self?.showDesktop.reset() }
                 self?.fullScreen.prune(alive: Set(windows.map(\.id)))
