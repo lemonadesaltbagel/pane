@@ -535,7 +535,10 @@ final class PaneAgent: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated {
                     guard let self, !self.args.dryRun else { return }
                     let scope = self.args.desktopScope
-                    let windows = self.inventory.refreshNow().filter { w in scope.map { $0.contains(w.bundleID ?? "") } ?? true }
+                    // Windows of another virtual desktop (an extension's) are its business: it parks them again.
+                    let windows = self.inventory.refreshNow().filter { w in
+                        (scope.map { $0.contains(w.bundleID ?? "") } ?? true) && self.desktopMembership.isOnCurrent(w.id)
+                    }
                     let moved = self.snap.bringBackStrandedWindows(windows) { [inventory = self.inventory] in inventory.element(for: $0) }
                     if moved > 0 { log("displays changed: brought \(moved) window(s) back on screen") }
                 }

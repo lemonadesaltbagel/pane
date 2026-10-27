@@ -21,6 +21,23 @@ public enum SecondDisplay {
         NSScreen.screens.dropFirst().first.map { Geometry.cocoaToAX($0.frame, primaryHeight: Geometry.primaryHeight) }
     }
 
+    /// A display kept across steps (the soak plugs and unplugs it). Gone when removed or released.
+    public final class Handle {
+        let display: PaneVirtualDisplay
+        init(_ display: PaneVirtualDisplay) { self.display = display }
+        public var displayID: CGDirectDisplayID { display.displayID }
+        public func remove() { display.remove() }
+    }
+
+    /// Adds a display and waits until AppKit sees it.
+    @MainActor public static func add(width: UInt32 = 1920, height: UInt32 = 1080) async -> Handle? {
+        let screens = NSScreen.screens.count
+        guard let display = PaneVirtualDisplay(width: width, height: height, hiDPI: false, name: "pane test display") else { return nil }
+        _ = await eventually(timeout: 5) { NSScreen.screens.count > screens }
+        await settle(1)
+        return Handle(display)
+    }
+
     /// Adds a `width` × `height` display, runs `body` with its frame (AX coordinates), removes it.
     @MainActor public static func with<T>(width: UInt32 = 1920, height: UInt32 = 1080, _ body: (CGRect) async throws -> T) async throws -> T {
         let before = yourWindows()
