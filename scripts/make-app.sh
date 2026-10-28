@@ -68,15 +68,21 @@ PLIST
 tmp=$(mktemp -d)
 trap 'rm -rf $tmp' EXIT
 
+# A release build leaves out debug symbols: the linker records every object file's path on the building Mac (your
+# home folder) in them.
+binary() { # name → path of the binary to put in the app
+  if [[ $config == release ]]; then cp $bin/$1 $tmp/$1.stripped && strip -S $tmp/$1.stripped && echo $tmp/$1.stripped; else echo $bin/$1; fi
+}
+
 # The helper first (it's signed before the app that contains it).
 plist dev.pane.preview PanePreview PanePreview 1.0 "" > $tmp/helper.plist
-place $bin/PanePreview $helper/Contents/MacOS/PanePreview
+place $(binary PanePreview) $helper/Contents/MacOS/PanePreview
 place $tmp/helper.plist $helper/Contents/Info.plist
 helper_changed=$changed
 
 usage='  <key>NSAppleEventsUsageDescription</key><string>pane restarts, shuts down or logs out the Mac when you choose that in Start.</string>'
 plist $bundle_id $name $product $version $usage > $tmp/app.plist
-place $bin/$product $app/Contents/MacOS/$product
+place $(binary $product) $app/Contents/MacOS/$product
 place $tmp/app.plist $app/Contents/Info.plist
 
 if (( changed )) || ! codesign --verify --deep --strict $app 2>/dev/null; then
