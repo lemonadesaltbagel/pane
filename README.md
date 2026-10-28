@@ -4,58 +4,63 @@
 
 **Windows-style window management for the Mac.**
 
-A taskbar in place of the Dock, a Start menu, Windows snapping, Alt+Tab between windows,
+A taskbar in place of the Dock, a Start menu, snapping, Alt+Tab between windows,<br>
 and apps that quit when their last window closes.
 
 [![CI](https://github.com/lemonadesaltbagel/pane/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonadesaltbagel/pane/actions/workflows/ci.yml)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
-![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
-![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
 
-[Features](#features) · [Shortcuts](#shortcuts) · [Build and run](#build-and-run) · [Permissions](#permissions) · [Tests](#tests) · [Contributing](#contributing)
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://lemonadesaltbagel.github.io/assets/readme/pane-dark.png">
+  <img src="https://lemonadesaltbagel.github.io/assets/readme/pane-light.png" width="880" alt="A Mac running pane: three windows snapped into a layout above pane's taskbar">
+</picture>
+
+<sub>Try it in your browser at <a href="https://lemonadesaltbagel.github.io">lemonadesaltbagel.github.io</a>: the page works like pane.</sub>
 
 </div>
 
-> [!NOTE]
-> pane is not affiliated with, endorsed by or sponsored by Microsoft. "Windows" is used only to describe the
-> behaviour pane brings to the Mac.
+<br>
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
-| 🪟 **Taskbar** | One button per window or per app, pinned apps, badges and attention, drag to reorder, auto-hide, the clock with its calendar, and show desktop at the far corner. The Dock stays out of its way, and comes back as it was when pane quits. |
-| 🖥️ **Every display** | A taskbar on each display, with Windows' choice of which taskbar lists a window. Maximize and snaps use the display's own work area, and windows move between displays with their snap kept. Unplugging a display brings its windows home. |
-| 🧲 **Snapping** | Drag to an edge or corner, with a preview. Title-bar double-click and the green button maximize, and keyboard snapping follows Windows' Win+Arrow rules. Edges shared between displays let the pointer through. |
-| 🚀 **Start** | Search apps, Pinned, All apps as a grid or a list, your folders, and power (lock, sleep, restart, shut down) acting at once, as on Windows. |
-| 🔀 **Alt+Tab** | A per-window switcher on ⌥Tab, most recent first. |
-| ⛶ **Full screen** | Windows-style full screen on the current desktop (no separate Space), hiding only that display's taskbar. |
-| 🚪 **Quit on last window** | Apps quit when their last window closes, with an opt-out list. |
-| ⚙️ **Settings and welcome** | Every option in a Settings window, a first-run welcome, a check for other apps that do the same job, and an update check. |
-| 🧩 **Extension points** | `PaneExtension` and `PaneHost`, for features built on the engine (see [`ENGINE-API.md`](ENGINE-API.md)). |
+| **Taskbar** | One button per window or per app, pinned apps, badges and attention, drag to reorder, auto-hide, a clock with its calendar, and show desktop at the far corner. The Dock stays out of the way, and comes back as it was when pane quits. |
+| **Every display** | A taskbar on each display, which lists windows the way Windows does. Maximize and snaps use each display's own work area, and windows keep their snap when they move between displays. Unplugging a display brings its windows home. |
+| **Snapping** | Drag a window to an edge or a corner and see where it lands. Title-bar double-click and the green button maximize, and keyboard snapping follows Windows' Win+Arrow rules. Edges shared between displays let the pointer through. |
+| **Start** | Tap <kbd>⌘</kbd>. Search apps, keep favourites in Pinned, browse All apps as a grid or a list, and lock, sleep, restart or shut down at once, as on Windows. |
+| **Alt+Tab** | <kbd>⌥</kbd> <kbd>Tab</kbd> steps through every window, most recent first, not every app. |
+| **Full screen** | Windows-style full screen on the desktop you're on, with no separate Space. Only that display's taskbar hides. |
+| **Quit on last window** | An app quits when its last window closes, with a list of apps to keep open. |
+| **Settings and welcome** | Every option in a Settings window, a first-run welcome, a check for other apps that do the same jobs, and an update check. |
+| **Extension points** | `PaneExtension` and `PaneHost`, for features built on the engine. See [`ENGINE-API.md`](ENGINE-API.md). |
 
-This repository is pane's engine. The official build, pane Pro, adds features through those extension points. Its
-code isn't in this repository.
+This repository is pane's engine. The official build, pane Pro, adds more through those extension points, such as
+live previews, virtual desktops and Snap Layouts. Its code isn't in this repository; the
+[website](https://lemonadesaltbagel.github.io/#editions) compares the two.
 
 ## Shortcuts
 
-The Mac keyboard keeps every macOS shortcut and adds these. Each one can be changed in Settings ▸ Keyboard.
+pane keeps every macOS shortcut and adds these. Each one can be changed in Settings ▸ Keyboard.
 
-| Action | Keys |
-|---|---|
-| Start | tap ⌘ |
-| Switch windows | ⌥ Tab |
-| Snap left / right | ⌃ ⌥ ← / → |
-| Maximize / restore or minimize | ⌃ ⌥ ↑ / ↓ |
-| Move window to the next / previous display | ⌃ ⌥ ⌘ → / ← |
-| Full screen | ⌃ ⌘ F |
-| Close window | ⌥ F4 |
-| pane Settings | ⌃ ⌘ I |
+| Action | On Windows | With pane |
+|---|---|---|
+| Open Start | Win | tap <kbd>⌘</kbd> |
+| Switch windows | Alt+Tab | <kbd>⌥</kbd> <kbd>Tab</kbd> |
+| Snap left or right | Win+← / → | <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>←</kbd> or <kbd>→</kbd> |
+| Maximize, or restore and minimize | Win+↑ / ↓ | <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>↑</kbd> or <kbd>↓</kbd> |
+| Move a window to another display | Win+Shift+← / → | <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>←</kbd> or <kbd>→</kbd> |
+| Full screen | F11 | <kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd> |
+| Close the window | Alt+F4 | <kbd>⌥</kbd> <kbd>F4</kbd> |
+| pane Settings | Win+I | <kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>I</kbd> |
 
 ## Build and run
 
-pane runs on **macOS 14 or later** (developed on macOS 26). Building needs **Swift 6** and the **macOS 26 SDK**:
-the Command Line Tools for macOS 26 are enough, or Xcode 26.
+pane runs on **macOS 14 or later** (developed on macOS 26). Building needs **Swift 6** and the **macOS 26 SDK**: the
+Command Line Tools for macOS 26 are enough, or Xcode 26.
 
 ```sh
 swift build
@@ -64,6 +69,7 @@ swift build
 
 <details>
 <summary><b>As a Mac app</b></summary>
+<br>
 
 ```sh
 scripts/make-app.sh          # builds .build/app/pane.app (ad-hoc signed, for trying pane as an app)
@@ -77,9 +83,10 @@ that copy of pane do: its permissions, its login item and its version.
 
 <details>
 <summary><b>What pane changes on your Mac, and how it puts it back</b></summary>
+<br>
 
 While it runs, pane changes a few macOS settings: the Dock's size and position (so it sits under the taskbar), and
-edge tiling (so pane's snapping works). It backs each one up first. It restores them when it quits, on Ctrl-C, on a
+edge tiling (so pane's snapping works). It backs each one up first, and restores them when it quits, on Ctrl-C, on a
 logout, or at the next start after a crash. `.build/debug/pane --restore-only` restores without starting.
 
 </details>
@@ -92,6 +99,7 @@ grant. As an app, macOS asks for pane itself.
 
 <details>
 <summary><b>Private APIs</b></summary>
+<br>
 
 pane uses some private macOS APIs (SkyLight / CoreGraphics Services, and `_AXUIElementGetWindow`) where public ones
 can't do the job: focusing one window of an app, reading window lists across Spaces, telling desktops apart. None of
@@ -120,3 +128,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md). Every contribution needs the contribut
 
 pane's engine is licensed under the [GNU Affero General Public License, version 3 or any later version](LICENSE).
 Third-party credits are in [`NOTICE`](NOTICE).
+
+pane isn't affiliated with, endorsed by or sponsored by Microsoft. "Windows" describes the behaviour pane brings to
+the Mac.
