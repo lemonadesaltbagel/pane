@@ -52,10 +52,52 @@ public enum Power {
             let port = IOPMFindPowerManagement(mach_port_t(MACH_PORT_NULL))
             defer { IOServiceClose(port) }
             return IOPMSleepSystem(port) == kIOReturnSuccess
-        case .restart: return sendToLoginWindow("rest")
-        case .shutDown: return sendToLoginWindow("shut")
-        case .logOut: return sendToLoginWindow("rlgo")
+        case .restart, .shutDown, .logOut: return restartShutDownOrLogOut(action)
         }
+    }
+
+    /// Restart, shut down and log out at once, as Windows does (apps are still asked to quit, so unsaved work can stop
+    /// it), without a new permission prompt:
+    /// 1. the Apple event to loginwindow (Apple QA1134) when macOS already allows pane to send it (Automation);
+    /// 2. otherwise the Apple menu's own "now" item (Restart, Shut Down, Log Out without "…", which skip the
+    ///    confirmation), pressed over Accessibility, which pane has;
+    /// 3. the Apple event as a last resort (macOS then asks once).
+    static func restartShutDownOrLogOut(_ action: PowerAction) -> Bool {
+        let code = action == .restart ? "rest" : action == .shutDown ? "shut" : "rlgo"
+        if automationStatus() == "allowed" { return sendToLoginWindow(code) }
+        if let item = appleMenuItem(action), AX.perform(item, kAXPressAction) == .success {
+            PaneLog.write("power: \(action.rawValue) through the Apple menu")
+            return true
+        }
+        return sendToLoginWindow(code)
+    }
+
+    /// The Apple menu's item that does `action` at once, found by its identifier (the same in every language), in the
+    /// frontmost app's menu bar, else Finder's.
+    public static func appleMenuItem(_ action: PowerAction) -> AXUIElement? {
+        let id: String
+        switch action {
+        case .restart: id = "_restartNowRequested:"
+        case .shutDown: id = "_shutDownNowRequested:"
+        case .logOut: id = "_logOutNowRequested:"
+        default: return nil
+        }
+        return appleMenuItem(identifier: id)
+    }
+
+    /// Any Apple menu item by identifier (tests use a harmless one, "_aboutThisMacRequested:").
+    public static func appleMenuItem(identifier: String) -> AXUIElement? {
+        let front = NSWorkspace.shared.frontmostApplication.flatMap { $0.processIdentifier == getpid() ? nil : $0 }
+        let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first
+        for app in [front, finder].compactMap({ $0 }) {
+            guard let bar: AXUIElement = AX.get(AX.app(app.processIdentifier), kAXMenuBarAttribute),
+                  let apple = (AX.get(bar, kAXChildrenAttribute) as [AXUIElement]?)?.first,
+                  let menu = (AX.get(apple, kAXChildrenAttribute) as [AXUIElement]?)?.first else { continue }
+            if let item = ((AX.get(menu, kAXChildrenAttribute) as [AXUIElement]?) ?? []).first(where: { (AX.get($0, "AXIdentifier") as String?) == identifier }) {
+                return item
+            }
+        }
+        return nil
     }
 
     /// login.framework's lock and switch-user calls (private; what Chromium uses). No synthetic ⌃⌘Q.

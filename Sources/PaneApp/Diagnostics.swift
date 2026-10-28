@@ -20,6 +20,7 @@ public enum Diagnostics {
             "screenRecording": CGPreflightScreenCaptureAccess() ? "granted" : "not granted",
             "previewHelper": FileManager.default.fileExists(atPath: PreviewClient.helperURL.path) ? PreviewClient.helperURL.path : "missing",
             "automation.restart": Power.automationStatus(),
+            "restart.appleMenu": Power.appleMenuItem(.restart) != nil ? "found" : "missing",
             "loginItem": LoginItem.status,
             "fullDiskAccess": FileAccess.hasFullDiskAccess ? "granted" : "not granted",
             "folders": FileAccess.askedForFolders ? (FileAccess.foldersAllowed ? "allowed" : "not allowed") : "not asked",

@@ -175,6 +175,10 @@ keeps the signature and the grants tied to it.
     (`OnboardingModel.filesText` adds it) and Settings.
   - `StartMenuModel.recentHint` shows under Recent what's missing.
   - A denied permission turns off only its feature; only Accessibility is required.
+- **Restart, shut down, log out** (`Power`): at once, with no new permission prompt. pane sends the Apple event to
+  loginwindow when macOS already allows it (`Power.automationStatus()`). Otherwise it presses the Apple menu's "now"
+  item over Accessibility (`Power.appleMenuItem`, found by identifier, e.g. `_restartNowRequested:`, the same in
+  every language). The Apple event, which may prompt, is the last resort.
 
 ## Multiple displays
 
